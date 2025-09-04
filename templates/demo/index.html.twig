@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Page Demo{% endblock %}
+
+{% block body %}
+    <h1>
+        {{ "now"|format_datetime(locale='fr', timezone='Europe/Paris', pattern="EEEE d MMMM y") }}
+    </h1>
+{% endblock %}
