@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
+#[ORM\HasLifecycleCallbacks]
+
 class Movie
 {
     #[ORM\Id]
@@ -44,6 +46,7 @@ class Movie
      */
     #[ORM\ManyToMany(targetEntity: Actor::class, mappedBy: 'movies')]
     private Collection $actors;
+    #[ORM\PrePersist]
 
     public function __construct()
     {
@@ -181,5 +184,9 @@ class Movie
         }
 
         return $this;
+    }
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 }

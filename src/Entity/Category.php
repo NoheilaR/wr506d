@@ -7,7 +7,9 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Category
 {
     #[ORM\Id]
@@ -23,7 +25,7 @@ class Category
      */
     #[ORM\ManyToMany(targetEntity: Movie::class, inversedBy: 'categories')]
     private Collection $movies;
-
+    #[ORM\PrePersist]
     public function __construct()
     {
         $this->movies = new ArrayCollection();
@@ -68,5 +70,9 @@ class Category
         $this->movies->removeElement($movie);
 
         return $this;
+    }
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 }

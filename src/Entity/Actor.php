@@ -9,6 +9,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ActorRepository::class)]
+#[ORM\HasLifecycleCallbacks]
+
 class Actor
 {
     #[ORM\Id]
@@ -39,6 +41,7 @@ class Actor
      */
     #[ORM\ManyToMany(targetEntity: Movie::class, inversedBy: 'actors')]
     private Collection $movies;
+    #[ORM\PrePersist]
 
     public function __construct()
     {
@@ -144,5 +147,9 @@ class Actor
         $this->movies->removeElement($movie);
 
         return $this;
+    }
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 }
