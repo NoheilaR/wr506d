@@ -42,11 +42,15 @@ class Actor
      */
     #[ORM\ManyToMany(targetEntity: Movie::class, inversedBy: 'actors')]
     private Collection $movies;
-    #[ORM\PrePersist]
 
+    #[ORM\Column]
+    private \DateTimeImmutable $createdAt;
+
+    #[ORM\PrePersist]
     public function __construct()
     {
         $this->movies = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -149,6 +153,20 @@ class Actor
 
         return $this;
     }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
         $this->createdAt = new \DateTimeImmutable();

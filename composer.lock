@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f6b0b9e3d63b8b85dc3dc3cf50826c57",
+    "content-hash": "0c3fa1eee7313515e22ac9716f19d43b",
     "packages": [
         {
             "name": "api-platform/doctrine-common",
@@ -9546,6 +9546,51 @@
                 "source": "https://github.com/willdurand/Negotiation/tree/3.1.0"
             },
             "time": "2022-01-30T20:08:53+00:00"
+        },
+        {
+            "name": "xylis/faker-cinema-providers",
+            "version": "v2.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/JulienRAVIA/FakerCinemaProviders.git",
+                "reference": "971c8e7959d73f949dcbec35a07929da9849990f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/JulienRAVIA/FakerCinemaProviders/zipball/971c8e7959d73f949dcbec35a07929da9849990f",
+                "reference": "971c8e7959d73f949dcbec35a07929da9849990f",
+                "shasum": ""
+            },
+            "require": {
+                "fakerphp/faker": "^1.12",
+                "php": "^5.3.3 || ^7.0 || ^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "*",
+                "squizlabs/php_codesniffer": "^2.9.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Xylis\\FakerCinema\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Julien RAVIA",
+                    "email": "julien.ravia@gmail.com"
+                }
+            ],
+            "description": "Generate random movie & shows datas using fakerphp/faker (based on real names & datas)",
+            "support": {
+                "issues": "https://github.com/JulienRAVIA/FakerCinemaProviders/issues",
+                "source": "https://github.com/JulienRAVIA/FakerCinemaProviders/tree/v2.0.1"
+            },
+            "time": "2022-06-26T00:00:53+00:00"
         }
     ],
     "packages-dev": [
