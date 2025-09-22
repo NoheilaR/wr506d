@@ -38,21 +38,22 @@ class MovieFixtures extends Fixture implements DependentFixtureInterface
         echo "Nombre d'acteurs trouvés : " . count($actors) . "\n";
         echo "Nombre de catégories trouvées : " . count($categories) . "\n";
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             $movie = new Movie();
 
             $movie->setName($faker->movie);
             $movie->setDescription($faker->overview);
             $movie->setDuration($faker->numberBetween(80, 180));
             $movie->setReleaseDate($faker->dateTimeBetween('-30 years', 'now'));
-            $movie->setImage("https://picsum.photos/400/600?random=" . $i);
+
+            // Utilisation de placehold.co pour les images de film
+            $movie->setImage("https://placehold.co/600x600/117fe8/white?text=Movie+$i");
 
             // Ajouter des acteurs (par exemple, 1 à 3 acteurs aléatoires)
             $numActors = $faker->numberBetween(1, 3);
             $randomActors = $faker->randomElements($actors, $numActors);
             foreach ($randomActors as $actor) {
                 $movie->addActor($actor);
-                echo "Ajout de l'acteur ID {$actor->getId()} au film $i\n";
             }
 
             // Ajouter des catégories (par exemple, 1 à 2 catégories aléatoires)
@@ -60,7 +61,6 @@ class MovieFixtures extends Fixture implements DependentFixtureInterface
             $randomCategories = $faker->randomElements($categories, $numCategories);
             foreach ($randomCategories as $category) {
                 $movie->addCategory($category);
-                echo "Ajout de la catégorie {$category->getName()} au film $i\n";
             }
 
             $manager->persist($movie);

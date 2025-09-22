@@ -10,7 +10,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
 {
     public function load(ObjectManager $manager): void
     {
-        // Ne rien faire ici, car les fixtures sont chargées via les dépendances
     }
 
     public function getDependencies(): array

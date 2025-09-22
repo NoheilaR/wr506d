@@ -17,7 +17,7 @@ class CategoryFixtures extends Fixture
 
         // On limite à 8 genres uniques
         $genres = [];
-        while (count($genres) < 8) {
+        while (count($genres) < 20) {
             $genres[] = $faker->movieGenre;
             $genres = array_unique($genres);
         }
@@ -25,7 +25,7 @@ class CategoryFixtures extends Fixture
         foreach ($genres as $index => $genre) {
             $category = new Category();
             $category->setName($genre);
-            $category->setCreatedAt(new \DateTimeImmutable()); // Ajout pour éviter l'erreur created_at
+          //  $category->setCreatedAt(new \DateTimeImmutable());
             $manager->persist($category);
             $this->addReference('category_' . $index, $category);
         }
