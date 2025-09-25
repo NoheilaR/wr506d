@@ -3,6 +3,11 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\RangeFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\MovieRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -11,6 +16,22 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource]
+#[ApiFilter(SearchFilter::class, properties: [
+    'name' => 'partial',
+    'categories.name' => 'partial',
+    'actors.lastname' => 'partial',
+    'actors.firstname' => 'partial'
+])]
+#[ApiFilter(DateFilter::class, properties: [
+    'actors.dob'
+])]
+#[ApiFilter(RangeFilter::class, properties: [
+    'duration'
+])]
+#[ApiFilter(OrderFilter::class, properties: [
+    'releaseDate',
+    'createdAt'
+], arguments: ['orderParameterName' => 'order'])]
 class Movie
 {
     #[ORM\Id]
@@ -47,8 +68,8 @@ class Movie
      */
     #[ORM\ManyToMany(targetEntity: Actor::class, mappedBy: 'movies')]
     private Collection $actors;
-    #[ORM\PrePersist]
 
+    #[ORM\PrePersist]
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -69,7 +90,6 @@ class Movie
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -81,7 +101,6 @@ class Movie
     public function setDescription(?string $description): static
     {
         $this->description = $description;
-
         return $this;
     }
 
@@ -93,7 +112,6 @@ class Movie
     public function setDuration(?int $duration): static
     {
         $this->duration = $duration;
-
         return $this;
     }
 
@@ -105,7 +123,6 @@ class Movie
     public function setReleaseDate(?\DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
-
         return $this;
     }
 
@@ -117,7 +134,6 @@ class Movie
     public function setImage(?string $image): static
     {
         $this->image = $image;
-
         return $this;
     }
 
@@ -129,7 +145,6 @@ class Movie
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -147,7 +162,6 @@ class Movie
             $this->categories->add($category);
             $category->addMovie($this);
         }
-
         return $this;
     }
 
@@ -156,7 +170,6 @@ class Movie
         if ($this->categories->removeElement($category)) {
             $category->removeMovie($this);
         }
-
         return $this;
     }
 
@@ -174,7 +187,6 @@ class Movie
             $this->actors->add($actor);
             $actor->addMovie($this);
         }
-
         return $this;
     }
 
@@ -183,9 +195,9 @@ class Movie
         if ($this->actors->removeElement($actor)) {
             $actor->removeMovie($this);
         }
-
         return $this;
     }
+
     public function setCreatedAtValue(): void
     {
         $this->createdAt = new \DateTimeImmutable();

@@ -3,6 +3,9 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use App\Repository\ActorRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -12,6 +15,14 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ActorRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource]
+#[ApiFilter(SearchFilter::class, properties: [
+    'lastname' => 'partial',
+    'firstname' => 'partial'
+])]
+#[ApiFilter(DateFilter::class, properties: [
+    'dob',
+    'dod'
+])]
 class Actor
 {
     #[ORM\Id]
@@ -66,7 +77,6 @@ class Actor
     public function setLastname(string $lastname): static
     {
         $this->lastname = $lastname;
-
         return $this;
     }
 
@@ -78,7 +88,6 @@ class Actor
     public function setFirstname(?string $firstname): static
     {
         $this->firstname = $firstname;
-
         return $this;
     }
 
@@ -90,7 +99,6 @@ class Actor
     public function setDob(?\DateTimeInterface $dob): static
     {
         $this->dob = $dob;
-
         return $this;
     }
 
@@ -102,7 +110,6 @@ class Actor
     public function setDod(?\DateTimeInterface $dod): static
     {
         $this->dod = $dod;
-
         return $this;
     }
 
@@ -114,7 +121,6 @@ class Actor
     public function setBio(?string $bio): static
     {
         $this->bio = $bio;
-
         return $this;
     }
 
@@ -126,7 +132,6 @@ class Actor
     public function setPhoto(?string $photo): static
     {
         $this->photo = $photo;
-
         return $this;
     }
 
@@ -143,14 +148,12 @@ class Actor
         if (!$this->movies->contains($movie)) {
             $this->movies->add($movie);
         }
-
         return $this;
     }
 
     public function removeMovie(Movie $movie): static
     {
         $this->movies->removeElement($movie);
-
         return $this;
     }
 
@@ -162,7 +165,6 @@ class Actor
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
