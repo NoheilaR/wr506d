@@ -12,6 +12,7 @@ use App\Repository\MovieRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -40,18 +41,38 @@ class Movie
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom du film est obligatoire")]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
+        maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
+    )]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(
+        max: 2000,
+        maxMessage: "La description ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\Positive(message: "La durée doit être positive")]
+    #[Assert\Range(
+        min: 1,
+        max: 600,
+        notInRangeMessage: "La durée doit être comprise entre {{ min }} et {{ max }} minutes"
+    )]
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
+    #[Assert\Type(\DateTimeInterface::class)]
+    #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
     private ?\DateTimeInterface $releaseDate = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: "L'image doit être une URL valide")]
     private ?string $image = null;
 
     #[ORM\Column]
@@ -69,12 +90,16 @@ class Movie
     #[ORM\ManyToMany(targetEntity: Actor::class, mappedBy: 'movies')]
     private Collection $actors;
 
-    #[ORM\PrePersist]
     public function __construct()
     {
-        $this->createdAt = new \DateTimeImmutable();
         $this->categories = new ArrayCollection();
         $this->actors = new ArrayCollection();
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -196,10 +221,5 @@ class Movie
             $actor->removeMovie($this);
         }
         return $this;
-    }
-
-    public function setCreatedAtValue(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
     }
 }

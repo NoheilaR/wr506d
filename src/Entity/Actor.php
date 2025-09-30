@@ -11,6 +11,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ActorRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -31,21 +32,44 @@ class Actor
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom de famille est obligatoire")]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: "Le nom doit contenir au moins {{ limit }} caractères",
+        maxMessage: "Le nom ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $lastname = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: "Le prénom ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $firstname = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Assert\Type(\DateTimeInterface::class)]
+    #[Assert\LessThanOrEqual("today", message: "La date de naissance doit être dans le passé")]
     private ?\DateTimeInterface $dob = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[Assert\Type(\DateTimeInterface::class)]
+    #[Assert\Expression(
+        "this.getDod() === null or (this.getDob() !== null and value > this.getDob())",
+        message: "La date de décès doit être postérieure à la date de naissance"
+    )]
     private ?\DateTimeInterface $dod = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: "La biographie ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $bio = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: "La photo doit être une URL valide")]
     private ?string $photo = null;
 
     /**
@@ -57,10 +81,14 @@ class Actor
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\PrePersist]
     public function __construct()
     {
         $this->movies = new ArrayCollection();
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -166,11 +194,5 @@ class Actor
     {
         $this->createdAt = $createdAt;
         return $this;
-    }
-
-    #[ORM\PrePersist]
-    public function setCreatedAtValue(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
     }
 }
