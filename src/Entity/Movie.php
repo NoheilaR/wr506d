@@ -21,13 +21,17 @@ use Symfony\Component\Validator\Constraints as Assert;
     'name' => 'partial',
     'categories.name' => 'partial',
     'actors.lastname' => 'partial',
-    'actors.firstname' => 'partial'
+    'actors.firstname' => 'partial',
+    'director.lastname' => 'partial',
+    'director.firstname' => 'partial'
 ])]
 #[ApiFilter(DateFilter::class, properties: [
     'actors.dob'
 ])]
 #[ApiFilter(RangeFilter::class, properties: [
-    'duration'
+    'duration',
+    'nbEntries',
+    'budget'
 ])]
 #[ApiFilter(OrderFilter::class, properties: [
     'releaseDate',
@@ -74,6 +78,23 @@ class Movie
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Url(message: "L'image doit être une URL valide")]
     private ?string $image = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero(message: "Le nombre d’entrées doit être positif ou nul")]
+    private ?int $nbEntries = null;
+
+    #[ORM\ManyToOne(targetEntity: Director::class, inversedBy: 'movies')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: "Le réalisateur est obligatoire")]
+    private ?Director $director = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: "L'URL doit être valide")]
+    private ?string $url = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    #[Assert\PositiveOrZero(message: "Le budget doit être positif ou nul")]
+    private ?float $budget = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -159,6 +180,50 @@ class Movie
     public function setImage(?string $image): static
     {
         $this->image = $image;
+        return $this;
+    }
+
+    public function getNbEntries(): ?int
+    {
+        return $this->nbEntries;
+    }
+
+    public function setNbEntries(?int $nbEntries): static
+    {
+        $this->nbEntries = $nbEntries;
+        return $this;
+    }
+
+    public function getDirector(): ?Director
+    {
+        return $this->director;
+    }
+
+    public function setDirector(Director $director): static
+    {
+        $this->director = $director;
+        return $this;
+    }
+
+    public function getUrl(): ?string
+    {
+        return $this->url;
+    }
+
+    public function setUrl(?string $url): static
+    {
+        $this->url = $url;
+        return $this;
+    }
+
+    public function getBudget(): ?float
+    {
+        return $this->budget;
+    }
+
+    public function setBudget(?float $budget): static
+    {
+        $this->budget = $budget;
         return $this;
     }
 
