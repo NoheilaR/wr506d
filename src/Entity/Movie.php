@@ -3,14 +3,40 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\RangeFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Repository\MovieRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource]
+#[ApiFilter(SearchFilter::class, properties: [
+    'name' => 'partial',
+    'categories.name' => 'partial',
+    'actors.lastname' => 'partial',
+    'actors.firstname' => 'partial',
+    'director.lastname' => 'partial',
+    'director.firstname' => 'partial'
+])]
+#[ApiFilter(DateFilter::class, properties: [
+    'actors.dob'
+])]
+#[ApiFilter(RangeFilter::class, properties: [
+    'duration',
+    'nbEntries',
+    'budget'
+])]
+#[ApiFilter(OrderFilter::class, properties: [
+    'releaseDate',
+    'createdAt'
+], arguments: ['orderParameterName' => 'order'])]
 class Movie
 {
     #[ORM\Id]
@@ -19,19 +45,56 @@ class Movie
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom du film est obligatoire")]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
+        maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
+    )]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(
+        max: 2000,
+        maxMessage: "La description ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\Positive(message: "La durée doit être positive")]
+    #[Assert\Range(
+        min: 1,
+        max: 600,
+        notInRangeMessage: "La durée doit être comprise entre {{ min }} et {{ max }} minutes"
+    )]
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
+    #[Assert\Type(\DateTimeInterface::class)]
+    #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
     private ?\DateTimeInterface $releaseDate = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: "L'image doit être une URL valide")]
     private ?string $image = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero(message: "Le nombre d’entrées doit être positif ou nul")]
+    private ?int $nbEntries = null;
+
+    #[ORM\ManyToOne(targetEntity: Director::class, inversedBy: 'movies')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: "Le réalisateur est obligatoire")]
+    private ?Director $director = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: "L'URL doit être valide")]
+    private ?string $url = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    #[Assert\PositiveOrZero(message: "Le budget doit être positif ou nul")]
+    private ?float $budget = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -47,13 +110,17 @@ class Movie
      */
     #[ORM\ManyToMany(targetEntity: Actor::class, mappedBy: 'movies')]
     private Collection $actors;
-    #[ORM\PrePersist]
 
     public function __construct()
     {
-        $this->createdAt = new \DateTimeImmutable();
         $this->categories = new ArrayCollection();
         $this->actors = new ArrayCollection();
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -69,7 +136,6 @@ class Movie
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -81,7 +147,6 @@ class Movie
     public function setDescription(?string $description): static
     {
         $this->description = $description;
-
         return $this;
     }
 
@@ -93,7 +158,6 @@ class Movie
     public function setDuration(?int $duration): static
     {
         $this->duration = $duration;
-
         return $this;
     }
 
@@ -105,7 +169,6 @@ class Movie
     public function setReleaseDate(?\DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
-
         return $this;
     }
 
@@ -117,7 +180,50 @@ class Movie
     public function setImage(?string $image): static
     {
         $this->image = $image;
+        return $this;
+    }
 
+    public function getNbEntries(): ?int
+    {
+        return $this->nbEntries;
+    }
+
+    public function setNbEntries(?int $nbEntries): static
+    {
+        $this->nbEntries = $nbEntries;
+        return $this;
+    }
+
+    public function getDirector(): ?Director
+    {
+        return $this->director;
+    }
+
+    public function setDirector(Director $director): static
+    {
+        $this->director = $director;
+        return $this;
+    }
+
+    public function getUrl(): ?string
+    {
+        return $this->url;
+    }
+
+    public function setUrl(?string $url): static
+    {
+        $this->url = $url;
+        return $this;
+    }
+
+    public function getBudget(): ?float
+    {
+        return $this->budget;
+    }
+
+    public function setBudget(?float $budget): static
+    {
+        $this->budget = $budget;
         return $this;
     }
 
@@ -129,7 +235,6 @@ class Movie
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -147,7 +252,6 @@ class Movie
             $this->categories->add($category);
             $category->addMovie($this);
         }
-
         return $this;
     }
 
@@ -156,7 +260,6 @@ class Movie
         if ($this->categories->removeElement($category)) {
             $category->removeMovie($this);
         }
-
         return $this;
     }
 
@@ -174,7 +277,6 @@ class Movie
             $this->actors->add($actor);
             $actor->addMovie($this);
         }
-
         return $this;
     }
 
@@ -183,11 +285,6 @@ class Movie
         if ($this->actors->removeElement($actor)) {
             $actor->removeMovie($this);
         }
-
         return $this;
-    }
-    public function setCreatedAtValue(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
     }
 }

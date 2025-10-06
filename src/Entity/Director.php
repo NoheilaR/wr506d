@@ -2,29 +2,15 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
-use App\Repository\ActorRepository;
+use App\Repository\DirectorRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Ignore;
 
-#[ORM\Entity(repositoryClass: ActorRepository::class)]
-#[ORM\HasLifecycleCallbacks]
-#[ApiResource]
-#[ApiFilter(SearchFilter::class, properties: [
-    'lastname' => 'partial',
-    'firstname' => 'partial'
-])]
-#[ApiFilter(DateFilter::class, properties: [
-    'dob',
-    'dod'
-])]
-class Actor
+#[ORM\Entity(repositoryClass: DirectorRepository::class)]
+class Director
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -32,7 +18,7 @@ class Actor
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: "Le nom de famille est obligatoire")]
+    #[Assert\NotBlank(message: "Le nom est obligatoire")]
     #[Assert\Length(
         min: 2,
         max: 255,
@@ -41,19 +27,22 @@ class Actor
     )]
     private ?string $lastname = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le prénom est obligatoire")]
     #[Assert\Length(
+        min: 2,
         max: 255,
+        minMessage: "Le prénom doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le prénom ne peut pas dépasser {{ limit }} caractères"
     )]
     private ?string $firstname = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    #[Assert\Type(\DateTimeInterface::class)]
+    #[ORM\Column(type: 'datetime')]
+    #[Assert\NotNull(message: "La date de naissance est obligatoire")]
     #[Assert\LessThanOrEqual("today", message: "La date de naissance doit être dans le passé")]
     private ?\DateTimeInterface $dob = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    #[ORM\Column(type: 'datetime', nullable: true)]
     #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\Expression(
         "this.getDod() === null or (this.getDob() !== null and value > this.getDob())",
@@ -61,35 +50,16 @@ class Actor
     )]
     private ?\DateTimeInterface $dod = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Assert\Length(
-        max: 5000,
-        maxMessage: "La biographie ne peut pas dépasser {{ limit }} caractères"
-    )]
-    private ?string $bio = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "La photo doit être une URL valide")]
-    private ?string $photo = null;
-
     /**
      * @var Collection<int, Movie>
      */
-    #[ORM\ManyToMany(targetEntity: Movie::class, inversedBy: 'actors')]
+    #[ORM\OneToMany(mappedBy: 'director', targetEntity: Movie::class, cascade: ['persist', 'remove'])]
+    #[Ignore] // <-- casse la boucle infinie
     private Collection $movies;
-
-    #[ORM\Column]
-    private \DateTimeImmutable $createdAt;
 
     public function __construct()
     {
         $this->movies = new ArrayCollection();
-    }
-
-    #[ORM\PrePersist]
-    public function setCreatedAtValue(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -113,7 +83,7 @@ class Actor
         return $this->firstname;
     }
 
-    public function setFirstname(?string $firstname): static
+    public function setFirstname(string $firstname): static
     {
         $this->firstname = $firstname;
         return $this;
@@ -124,7 +94,7 @@ class Actor
         return $this->dob;
     }
 
-    public function setDob(?\DateTimeInterface $dob): static
+    public function setDob(\DateTimeInterface $dob): static
     {
         $this->dob = $dob;
         return $this;
@@ -141,28 +111,6 @@ class Actor
         return $this;
     }
 
-    public function getBio(): ?string
-    {
-        return $this->bio;
-    }
-
-    public function setBio(?string $bio): static
-    {
-        $this->bio = $bio;
-        return $this;
-    }
-
-    public function getPhoto(): ?string
-    {
-        return $this->photo;
-    }
-
-    public function setPhoto(?string $photo): static
-    {
-        $this->photo = $photo;
-        return $this;
-    }
-
     /**
      * @return Collection<int, Movie>
      */
@@ -175,24 +123,18 @@ class Actor
     {
         if (!$this->movies->contains($movie)) {
             $this->movies->add($movie);
+            $movie->setDirector($this);
         }
         return $this;
     }
 
     public function removeMovie(Movie $movie): static
     {
-        $this->movies->removeElement($movie);
-        return $this;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
+        if ($this->movies->removeElement($movie)) {
+            if ($movie->getDirector() === $this) {
+                $movie->setDirector(null);
+            }
+        }
         return $this;
     }
 }

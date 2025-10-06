@@ -3,14 +3,20 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource]
+#[ApiFilter(SearchFilter::class, properties: [
+    'name' => 'partial'
+])]
 class Category
 {
     #[ORM\Id]
@@ -19,6 +25,13 @@ class Category
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom de la catégorie est obligatoire")]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: "Le nom doit contenir au moins {{ limit }} caractères",
+        maxMessage: "Le nom ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $name = null;
 
     /**
@@ -30,10 +43,14 @@ class Category
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\PrePersist]
     public function __construct()
     {
         $this->movies = new ArrayCollection();
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -50,7 +67,6 @@ class Category
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -67,14 +83,12 @@ class Category
         if (!$this->movies->contains($movie)) {
             $this->movies->add($movie);
         }
-
         return $this;
     }
 
     public function removeMovie(Movie $movie): static
     {
         $this->movies->removeElement($movie);
-
         return $this;
     }
 
@@ -86,13 +100,6 @@ class Category
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
-    }
-
-    #[ORM\PrePersist]
-    public function setCreatedAtValue(): void
-    {
-        $this->createdAt = new \DateTimeImmutable();
     }
 }
