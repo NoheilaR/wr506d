@@ -1,13 +1,17 @@
 services:
-    App\EventSubscriber\EntitySavedEventSubscriber: ~
-    App\EventListener\EntitySavedListener: ~
-
     _defaults:
         autowire: true
         autoconfigure: true
 
     App\:
         resource: '../src/'
+
+
+    App\Encoder\MultipartDecoder:
+        tags: [{ name: 'serializer.decoder' }]
+
+    App\Serializer\UploadedFileDenormalizer:
+        tags: [{ name: 'serializer.normalizer', priority: 10 }]
 
     App\State\UserPasswordHasher:
         arguments:
