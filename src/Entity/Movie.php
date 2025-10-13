@@ -17,11 +17,15 @@ use App\Repository\MovieRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Metadata\ApiProperty;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
+    normalizationContext: ['groups' => ['movie:read']],
+    denormalizationContext: ['groups' => ['movie:write']],
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
@@ -55,6 +59,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['movie:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -65,6 +70,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
+    #[Groups(['movie:read', 'movie:write'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -72,6 +78,7 @@ class Movie
         max: 2000,
         maxMessage: "La description ne peut pas dépasser {{ limit }} caractères"
     )]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
@@ -81,48 +88,66 @@ class Movie
         max: 600,
         notInRangeMessage: "La durée doit être comprise entre {{ min }} et {{ max }} minutes"
     )]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
     #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?\DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Url(message: "L'image doit être une URL valide")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?string $image = null;
 
     #[ORM\Column(nullable: true)]
-    #[Assert\PositiveOrZero(message: "Le nombre d’entrées doit être positif ou nul")]
+    #[Assert\PositiveOrZero(message: "Le nombre d'entrées doit être positif ou nul")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?int $nbEntries = null;
 
     #[ORM\ManyToOne(targetEntity: Director::class, inversedBy: 'movies')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: "Le réalisateur est obligatoire")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?Director $director = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Url(message: "L'URL doit être valide")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?string $url = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
     #[Assert\PositiveOrZero(message: "Le budget doit être positif ou nul")]
+    #[Groups(['movie:read', 'movie:write'])]
     private ?float $budget = null;
 
     #[ORM\Column]
+    #[Groups(['movie:read'])]
     private \DateTimeImmutable $createdAt;
 
     /**
      * @var Collection<int, Category>
      */
-    #[ORM\ManyToMany(targetEntity: Category::class, mappedBy: 'movies')]
+    #[ORM\ManyToMany(targetEntity: Category::class, inversedBy: 'movies')]
+    #[ORM\JoinTable(name: 'movie_category')]
+    #[Groups(['movie:read', 'movie:write'])]
     private Collection $categories;
 
     /**
      * @var Collection<int, Actor>
      */
-    #[ORM\ManyToMany(targetEntity: Actor::class, mappedBy: 'movies')]
+    #[ORM\ManyToMany(targetEntity: Actor::class, inversedBy: 'movies')]
+    #[ORM\JoinTable(name: 'movie_actor')]
+    #[Groups(['movie:read', 'movie:write'])]
     private Collection $actors;
+
+    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[ApiProperty(types: ['https://schema.org/image'])]
+    #[Groups(['movie:read', 'movie:write'])]
+    private ?MediaObject $poster = null;
 
     public function __construct()
     {
@@ -263,16 +288,13 @@ class Movie
     {
         if (!$this->categories->contains($category)) {
             $this->categories->add($category);
-            $category->addMovie($this);
         }
         return $this;
     }
 
     public function removeCategory(Category $category): static
     {
-        if ($this->categories->removeElement($category)) {
-            $category->removeMovie($this);
-        }
+        $this->categories->removeElement($category);
         return $this;
     }
 
@@ -288,16 +310,24 @@ class Movie
     {
         if (!$this->actors->contains($actor)) {
             $this->actors->add($actor);
-            $actor->addMovie($this);
         }
         return $this;
     }
 
     public function removeActor(Actor $actor): static
     {
-        if ($this->actors->removeElement($actor)) {
-            $actor->removeMovie($this);
-        }
+        $this->actors->removeElement($actor);
+        return $this;
+    }
+
+    public function getPoster(): ?MediaObject
+    {
+        return $this->poster;
+    }
+
+    public function setPoster(?MediaObject $poster): static
+    {
+        $this->poster = $poster;
         return $this;
     }
 }

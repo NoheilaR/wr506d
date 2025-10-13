@@ -7,3 +7,7 @@ api_platform:
             vary: ['Content-Type', 'Authorization', 'Origin']
     graphql:
         enabled: true
+
+    formats:
+            jsonld: [ 'application/ld+json' ]
+            multipart: [ 'multipart/form-data' ]

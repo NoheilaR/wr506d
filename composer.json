@@ -51,6 +51,7 @@
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/intl-extra": "^3.21",
         "twig/twig": "^2.12|^3.0",
+        "vich/uploader-bundle": "^2.8",
         "webonyx/graphql-php": "^15.24",
         "xylis/faker-cinema-providers": "^2.0"
     },
