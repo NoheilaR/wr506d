@@ -13,10 +13,13 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        api:
+            pattern: ^/api
+            stateless: true
+            jwt: ~
         main:
-            lazy: true
-            provider: users
-
+            pattern: ^/auth$
+            stateless: true
             json_login:
                 check_path: /auth
                 username_path: email
@@ -24,10 +27,8 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
-            # ici tu n’ajoutes PAS de "jwt:" → c’est géré par l’authenticator Lexik
-
     access_control:
         - { path: ^/$, roles: PUBLIC_ACCESS }
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
-        - { path: ^/api/auth, roles: PUBLIC_ACCESS }
+        - { path: ^/auth, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
