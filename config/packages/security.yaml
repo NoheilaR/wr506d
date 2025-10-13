@@ -8,6 +8,10 @@ security:
                 class: App\Entity\User
                 property: email
 
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_USER]
+        ROLE_SUPER_ADMIN: [ROLE_ADMIN]
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -17,6 +21,7 @@ security:
             pattern: ^/api
             stateless: true
             jwt: ~
+
         main:
             pattern: ^/auth$
             stateless: true
@@ -28,7 +33,14 @@ security:
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
     access_control:
+        # Page d'accueil publique
         - { path: ^/$, roles: PUBLIC_ACCESS }
+
+        # Documentation API publique
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+
+        # Auth publique
         - { path: ^/auth, roles: PUBLIC_ACCESS }
+
+        # Tout le reste de l'API nécessite une authentification
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
