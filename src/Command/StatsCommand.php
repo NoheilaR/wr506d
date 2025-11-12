@@ -35,8 +35,18 @@ class StatsCommand extends Command
     {
         $this
             ->setDescription('Affiche les statistiques sur la base de données')
-            ->addOption('log-file', null, InputOption::VALUE_OPTIONAL, 'Chemin du fichier de log (facultatif)')
-            ->addOption('send-mail', null, InputOption::VALUE_OPTIONAL, 'Adresse email du destinataire (facultatif)');
+            ->addOption(
+                'log-file',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Chemin du fichier de log (facultatif)'
+            )
+            ->addOption(
+                'send-mail',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Adresse email du destinataire (facultatif)'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -90,7 +100,10 @@ class StatsCommand extends Command
             case 'categories':
                 $categories = $this->categoryRepository->findAll();
                 foreach ($categories as $category) {
-                    $table[] = [$category->getName(), $category->getMovies()->count() . ' film(s)'];
+                    $table[] = [
+                        $category->getName(),
+                        $category->getMovies()->count() . ' film(s)'
+                    ];
                 }
                 $outputText = "📂 Nombre total de catégories : $nbCategories";
                 break;
@@ -102,7 +115,8 @@ class StatsCommand extends Command
                     $table = $images;
                 }
                 $table[] = ['💾 Total', "{$totalSizeMb} Mo"];
-                $outputText = "🖼️ Nombre d'images : $nbMedia | 💾 Poids total : {$totalSizeMb} Mo";
+                $outputText = "🖼️ Nombre d'images : $nbMedia | "
+                    . "💾 Poids total : {$totalSizeMb} Mo";
                 break;
 
             case 'all':
@@ -113,7 +127,9 @@ class StatsCommand extends Command
                     ['Images', $nbMedia],
                     ['Poids total', "{$totalSizeMb} Mo"],
                 ];
-                $outputText = "🎬 $nbMovies films | 🧑‍🎤 $nbActors acteurs | 📂 $nbCategories catégories | 🖼️ $nbMedia images ({$totalSizeMb} Mo)";
+                $outputText = "🎬 $nbMovies films | 🧑‍🎤 $nbActors acteurs | "
+                    . "📂 $nbCategories catégories | "
+                    . "🖼️ $nbMedia images ({$totalSizeMb} Mo)";
                 break;
         }
 

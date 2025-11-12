@@ -18,8 +18,11 @@ class MediaObjectNormalizer implements NormalizerInterface
     ) {
     }
 
-    public function normalize($object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
-    {
+    public function normalize(
+        $object,
+        ?string $format = null,
+        array $context = []
+    ): array|string|int|float|bool|\ArrayObject|null {
         $context[self::ALREADY_CALLED] = true;
 
         if ($object instanceof MediaObject) {
@@ -29,8 +32,11 @@ class MediaObjectNormalizer implements NormalizerInterface
         return $this->normalizer->normalize($object, $format, $context);
     }
 
-    public function supportsNormalization($data, ?string $format = null, array $context = []): bool
-    {
+    public function supportsNormalization(
+        $data,
+        ?string $format = null,
+        array $context = []
+    ): bool {
         if (isset($context[self::ALREADY_CALLED])) {
             return false;
         }
