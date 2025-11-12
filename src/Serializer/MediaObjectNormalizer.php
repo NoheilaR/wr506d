@@ -12,14 +12,17 @@ class MediaObjectNormalizer implements NormalizerInterface
     private const ALREADY_CALLED = 'MEDIA_OBJECT_NORMALIZER_ALREADY_CALLED';
 
     public function __construct(
-        #[Autowire(service: 'api_platform.jsonld.normalizer.item')]
+        #[Autowire(service: 'api_platform.graphql.normalizer.item')]
         private readonly NormalizerInterface $normalizer,
         private readonly StorageInterface $storage
     ) {
     }
 
-    public function normalize($object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
-    {
+    public function normalize(
+        $object,
+        ?string $format = null,
+        array $context = []
+    ): array|string|int|float|bool|\ArrayObject|null {
         $context[self::ALREADY_CALLED] = true;
 
         if ($object instanceof MediaObject) {
@@ -29,8 +32,11 @@ class MediaObjectNormalizer implements NormalizerInterface
         return $this->normalizer->normalize($object, $format, $context);
     }
 
-    public function supportsNormalization($data, ?string $format = null, array $context = []): bool
-    {
+    public function supportsNormalization(
+        $data,
+        ?string $format = null,
+        array $context = []
+    ): bool {
         if (isset($context[self::ALREADY_CALLED])) {
             return false;
         }

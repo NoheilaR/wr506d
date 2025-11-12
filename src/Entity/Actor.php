@@ -70,7 +70,7 @@ class Actor
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['actor:read', 'actor:write'])]
     private ?MediaObject $photo = null;
-  
+
 
     public function __construct()
     {
