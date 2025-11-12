@@ -1,0 +1,13 @@
+api_platform:
+    title: WR506D - API
+    version: 1.0.0
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    graphql:
+        enabled: true
+
+    formats:
+            jsonld: [ 'application/ld+json' ]
+            multipart: [ 'multipart/form-data' ]

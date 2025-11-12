@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Movie;
+
 class SlugController extends AbstractController
 {
     #[Route('/slug/{text}', name: 'slugify_text')]
@@ -32,6 +33,4 @@ class SlugController extends AbstractController
 
         return new Response('Film ajouté et log créé !');
     }
-
-
 }
