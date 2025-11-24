@@ -27,16 +27,20 @@ class UserPasswordHasher implements ProcessorInterface
         array $uriVariables = [],
         array $context = []
     ): User {
-        if (!$data->getPlainPassword()) {
-            return $this->processor->process($data, $operation, $uriVariables, $context);
+        // ✅ Hash seulement si plainPassword est renseigné ET non vide
+        if ($data->getPlainPassword() && trim($data->getPlainPassword()) !== '') {
+            $hashedPassword = $this->passwordHasher->hashPassword(
+                $data,
+                $data->getPlainPassword()
+            );
+            $data->setPassword($hashedPassword);
+            $data->eraseCredentials();
         }
 
-        $hashedPassword = $this->passwordHasher->hashPassword(
-            $data,
-            $data->getPlainPassword()
-        );
-        $data->setPassword($hashedPassword);
-        $data->eraseCredentials();
+        // Attribution automatique du rôle ROLE_USER si aucun rôle n'est défini
+        if (empty($data->getRoles()) || $data->getRoles() === ['ROLE_USER']) {
+            $data->setRoles(['ROLE_USER']);
+        }
 
         return $this->processor->process($data, $operation, $uriVariables, $context);
     }
