@@ -42,5 +42,5 @@ security:
         # Auth publique
         - { path: ^/auth, roles: PUBLIC_ACCESS }
 
-        # Tout le reste de l'API nécessite une authentification
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+
+        - { path: ^/api, roles: PUBLIC_ACCESS }

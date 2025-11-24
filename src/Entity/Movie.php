@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\MediaObject;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
@@ -20,6 +21,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiProperty;
+use DateTimeImmutable;
+use DateTimeInterface;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -92,13 +95,13 @@ class Movie
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
-    #[Assert\Type(\DateTimeInterface::class)]
+    #[Assert\Type(DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
     #[Groups(['movie:read', 'movie:write'])]
-    private ?\DateTimeInterface $releaseDate = null;
+    private ?DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'image doit être une URL valide")]
+    #[Assert\Url(message: "L'image doit être une URL valide", requireTld: false)]
     #[Groups(['movie:read', 'movie:write'])]
     private ?string $image = null;
 
@@ -114,7 +117,7 @@ class Movie
     private ?Director $director = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'URL doit être valide")]
+    #[Assert\Url(message: "L'URL doit être valide", requireTld: false)]
     #[Groups(['movie:read', 'movie:write'])]
     private ?string $url = null;
 
@@ -125,7 +128,7 @@ class Movie
 
     #[ORM\Column]
     #[Groups(['movie:read'])]
-    private \DateTimeImmutable $createdAt;
+    private DateTimeImmutable $createdAt;
 
     /**
      * @var Collection<int, Category>
@@ -158,7 +161,7 @@ class Movie
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -199,12 +202,12 @@ class Movie
         return $this;
     }
 
-    public function getReleaseDate(): ?\DateTimeInterface
+    public function getReleaseDate(): ?DateTimeInterface
     {
         return $this->releaseDate;
     }
 
-    public function setReleaseDate(?\DateTimeInterface $releaseDate): static
+    public function setReleaseDate(?DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
         return $this;
@@ -265,12 +268,12 @@ class Movie
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
@@ -329,5 +332,15 @@ class Movie
     {
         $this->poster = $poster;
         return $this;
+    }
+
+    public function setTitle(string $title): static
+    {
+        return $this->setName($title);
+    }
+
+    public function setReleasedAt(?DateTimeImmutable $date): static
+    {
+        return $this->setReleaseDate($date);
     }
 }

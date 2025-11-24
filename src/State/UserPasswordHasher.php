@@ -8,7 +8,7 @@ use App\Entity\User;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * @implements ProcessorInterface<User, User|void>
+ * @implements ProcessorInterface<User, User>
  */
 class UserPasswordHasher implements ProcessorInterface
 {
@@ -26,7 +26,7 @@ class UserPasswordHasher implements ProcessorInterface
         Operation $operation,
         array $uriVariables = [],
         array $context = []
-    ): User|void {
+    ): User {
         if (!$data->getPlainPassword()) {
             return $this->processor->process($data, $operation, $uriVariables, $context);
         }

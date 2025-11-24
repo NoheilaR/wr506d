@@ -9,6 +9,10 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\ActorRepository;
+use App\Entity\Movie;
+use App\Entity\MediaObject;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -49,11 +53,11 @@ class Actor
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['actor:read', 'actor:write'])]
-    private ?\DateTimeInterface $dob = null;
+    private ?DateTimeInterface $dob = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['actor:read', 'actor:write'])]
-    private ?\DateTimeInterface $dod = null;
+    private ?DateTimeInterface $dod = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['actor:read', 'actor:write', 'movie:read'])]
@@ -64,18 +68,17 @@ class Actor
     private Collection $movies;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
+    private ?DateTimeImmutable $createdAt = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['actor:read', 'actor:write'])]
     private ?MediaObject $photo = null;
 
-
     public function __construct()
     {
         $this->movies = new ArrayCollection();
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -116,23 +119,23 @@ class Actor
         return $this;
     }
 
-    public function getDob(): ?\DateTimeInterface
+    public function getDob(): ?DateTimeInterface
     {
         return $this->dob;
     }
 
-    public function setDob(?\DateTimeInterface $dob): static
+    public function setDob(?DateTimeInterface $dob): static
     {
         $this->dob = $dob;
         return $this;
     }
 
-    public function getDod(): ?\DateTimeInterface
+    public function getDod(): ?DateTimeInterface
     {
         return $this->dod;
     }
 
-    public function setDod(?\DateTimeInterface $dod): static
+    public function setDod(?DateTimeInterface $dod): static
     {
         $this->dod = $dod;
         return $this;
@@ -176,12 +179,12 @@ class Actor
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): ?DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
