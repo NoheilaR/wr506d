@@ -3,41 +3,73 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Delete;
 use App\Repository\UserRepository;
+use App\State\UserPasswordHasher;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[ApiResource(
-    processor: App\State\UserPasswordHasher::class
+    operations: [
+        new GetCollection(
+            security: "is_granted('PUBLIC_ACCESS')",
+            normalizationContext: ['groups' => ['user:read']]
+        ),
+        new Get(
+            security: "is_granted('PUBLIC_ACCESS')",
+            normalizationContext: ['groups' => ['user:read']]
+        ),
+        new Post(
+            uriTemplate: '/users',
+            security: "is_granted('PUBLIC_ACCESS')",
+            denormalizationContext: ['groups' => ['user:write']],
+            normalizationContext: ['groups' => ['user:read']],
+            processor: UserPasswordHasher::class
+        ),
+        new Put(
+            security: "is_granted('ROLE_ADMIN')",
+            denormalizationContext: ['groups' => ['user:write']],
+            normalizationContext: ['groups' => ['user:read']],
+            processor: UserPasswordHasher::class
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN')"
+        )
+    ]
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
+    #[Groups(['user:write', 'user:read'])]
+    #[Assert\NotBlank]
+    #[Assert\Email]
     private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
     #[ORM\Column]
+    #[Groups(['user:read', 'user:write'])]
     private array $roles = [];
 
-    /**
-     * @var string The hashed password
-     */
-    #[ORM\Column]
+    #[ORM\Column(updatable: false)]
     private ?string $password = null;
 
-    /**
-     * Mot de passe en clair (non stocké en BDD, juste pour la création/mise à jour)
-     */
+    #[Groups(['user:write'])]
+    #[Assert\NotBlank(groups: ['user:write'])]
+    #[Assert\Length(min: 6)]
     private ?string $plainPassword = null;
 
     public function getId(): ?int
@@ -53,43 +85,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
-
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
-
         return array_unique($roles);
     }
 
-    /**
-     * @param list<string> $roles
-     */
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
-
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -98,7 +114,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
-
         return $this;
     }
 
@@ -110,7 +125,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPlainPassword(?string $plainPassword): static
     {
         $this->plainPassword = $plainPassword;
-
         return $this;
     }
 
@@ -119,14 +133,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->plainPassword = null;
     }
 
-    /**
-     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them.
-     */
     public function __serialize(): array
     {
         $data = (array) $this;
         $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
-
         return $data;
     }
 }

@@ -16,3 +16,6 @@ services:
     App\State\UserPasswordHasher:
         arguments:
             $processor: '@api_platform.doctrine.orm.state.persist_processor'
+            $passwordHasher: '@Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface'
+        tags:
+            - { name: 'api_platform.state_processor' }

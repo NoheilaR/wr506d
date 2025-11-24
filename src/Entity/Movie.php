@@ -19,13 +19,13 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use ApiPlatform\Metadata\ApiProperty;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     normalizationContext: ['groups' => ['movie:read']],
     denormalizationContext: ['groups' => ['movie:write']],
+    paginationEnabled: false,
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
@@ -123,9 +123,9 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private ?float $budget = null;
 
-    #[ORM\Column]
+    #[ORM\Column(updatable: false)]
     #[Groups(['movie:read'])]
-    private \DateTimeImmutable $createdAt;
+    private ?\DateTimeImmutable $createdAt = null;
 
     /**
      * @var Collection<int, Category>
@@ -142,12 +142,6 @@ class Movie
     #[ORM\JoinTable(name: 'movie_actor')]
     #[Groups(['movie:read', 'movie:write'])]
     private Collection $actors;
-
-    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[ApiProperty(types: ['https://schema.org/image'])]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?MediaObject $poster = null;
 
     public function __construct()
     {
@@ -265,12 +259,12 @@ class Movie
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
@@ -317,17 +311,6 @@ class Movie
     public function removeActor(Actor $actor): static
     {
         $this->actors->removeElement($actor);
-        return $this;
-    }
-
-    public function getPoster(): ?MediaObject
-    {
-        return $this->poster;
-    }
-
-    public function setPoster(?MediaObject $poster): static
-    {
-        $this->poster = $poster;
         return $this;
     }
 }
