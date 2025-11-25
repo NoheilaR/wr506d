@@ -17,11 +17,7 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        api:
-            pattern: ^/api
-            stateless: true
-            jwt: ~
-
+        # ✅ Route d'authentification (/auth)
         main:
             pattern: ^/auth$
             stateless: true
@@ -32,15 +28,29 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
-    access_control:
-        # Page d'accueil publique
-        - { path: ^/$, roles: PUBLIC_ACCESS }
+        # ✅ Routes API (protégées par JWT sauf exceptions)
+        api:
+            pattern: ^/api
+            stateless: true
+            jwt: ~
 
+    access_control:
         # Documentation API publique
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+
+        # Inscription publique
+        - { path: ^/api/users$, roles: PUBLIC_ACCESS, methods: [ POST ] }
+
+        # Films en lecture publique (GET)
+        - { path: ^/api/movies, roles: PUBLIC_ACCESS, methods: [ GET ] }
+
+        # Catégories, acteurs, directors en lecture publique
+        - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [ GET ] }
+        - { path: ^/api/actors, roles: PUBLIC_ACCESS, methods: [ GET ] }
+        - { path: ^/api/directors, roles: PUBLIC_ACCESS, methods: [ GET ] }
 
         # Auth publique
         - { path: ^/auth, roles: PUBLIC_ACCESS }
 
-
-        - { path: ^/api, roles: PUBLIC_ACCESS }
+        # Tout le reste de l'API nécessite une authentification
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

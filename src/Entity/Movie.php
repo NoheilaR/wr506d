@@ -20,8 +20,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use ApiPlatform\Metadata\ApiProperty;
-use DateTimeImmutable;
 use DateTimeInterface;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
@@ -29,6 +27,7 @@ use DateTimeInterface;
 #[ApiResource(
     normalizationContext: ['groups' => ['movie:read']],
     denormalizationContext: ['groups' => ['movie:write']],
+    paginationEnabled: false,
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
@@ -126,9 +125,9 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private ?float $budget = null;
 
-    #[ORM\Column]
+    #[ORM\Column(updatable: false)]
     #[Groups(['movie:read'])]
-    private DateTimeImmutable $createdAt;
+    private ?\DateTimeImmutable $createdAt = null;
 
     /**
      * @var Collection<int, Category>
@@ -147,8 +146,6 @@ class Movie
     private Collection $actors;
 
     #[ORM\ManyToOne(targetEntity: MediaObject::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[ApiProperty(types: ['https://schema.org/image'])]
     #[Groups(['movie:read', 'movie:write'])]
     private ?MediaObject $poster = null;
 
@@ -161,7 +158,7 @@ class Movie
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $this->createdAt = new DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -268,58 +265,14 @@ class Movie
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(DateTimeImmutable $createdAt): static
+    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Category>
-     */
-    public function getCategories(): Collection
-    {
-        return $this->categories;
-    }
-
-    public function addCategory(Category $category): static
-    {
-        if (!$this->categories->contains($category)) {
-            $this->categories->add($category);
-        }
-        return $this;
-    }
-
-    public function removeCategory(Category $category): static
-    {
-        $this->categories->removeElement($category);
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Actor>
-     */
-    public function getActors(): Collection
-    {
-        return $this->actors;
-    }
-
-    public function addActor(Actor $actor): static
-    {
-        if (!$this->actors->contains($actor)) {
-            $this->actors->add($actor);
-        }
-        return $this;
-    }
-
-    public function removeActor(Actor $actor): static
-    {
-        $this->actors->removeElement($actor);
         return $this;
     }
 
@@ -339,8 +292,46 @@ class Movie
         return $this->setName($title);
     }
 
-    public function setReleasedAt(?DateTimeImmutable $date): static
+    public function setReleasedAt(?\DateTimeImmutable $date): static
     {
         return $this->setReleaseDate($date);
+    }
+
+    public function getCategories(): Collection
+    {
+        return $this->categories;
+    }
+
+    public function addCategory(Category $category): static
+    {
+        if (!$this->categories->contains($category)) {
+            $this->categories->add($category);
+        }
+        return $this;
+    }
+
+    public function removeCategory(Category $category): static
+    {
+        $this->categories->removeElement($category);
+        return $this;
+    }
+
+    public function getActors(): Collection
+    {
+        return $this->actors;
+    }
+
+    public function addActor(Actor $actor): static
+    {
+        if (!$this->actors->contains($actor)) {
+            $this->actors->add($actor);
+        }
+        return $this;
+    }
+
+    public function removeActor(Actor $actor): static
+    {
+        $this->actors->removeElement($actor);
+        return $this;
     }
 }
