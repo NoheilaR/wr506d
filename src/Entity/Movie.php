@@ -29,9 +29,9 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Put(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new Post(security: "is_granted('ROLE_AUTHOR')"),
+        new Put(security: "is_granted('ROLE_EDITOR') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"),
+        new Delete(security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)")
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -40,10 +40,13 @@ use Symfony\Component\Validator\Constraints as Assert;
     'actors.lastname' => 'partial',
     'actors.firstname' => 'partial',
     'director.lastname' => 'partial',
-    'director.firstname' => 'partial'
+    'director.firstname' => 'partial',
+    'author' => 'exact'
 ])]
 #[ApiFilter(DateFilter::class, properties: [
-    'actors.dob'
+    'actors.dob',
+    'createdAt',
+    'releaseDate'
 ])]
 #[ApiFilter(RangeFilter::class, properties: [
     'duration',
@@ -59,7 +62,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['movie:read'])]
+    #[Groups(['movie:read', 'comment:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -70,7 +73,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read', 'movie:write', 'comment:read'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -127,6 +130,16 @@ class Movie
     #[Groups(['movie:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['movie:read'])]
+    private ?User $author = null;
+
+    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['movie:read', 'movie:write'])]
+    private ?MediaObject $poster = null;
+
     /**
      * @var Collection<int, Category>
      */
@@ -143,10 +156,18 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private Collection $actors;
 
+    /**
+     * @var Collection<int, Comment>
+     */
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'movie', orphanRemoval: true)]
+    #[Groups(['movie:read'])]
+    private Collection $comments;
+
     public function __construct()
     {
         $this->categories = new ArrayCollection();
         $this->actors = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -311,6 +332,55 @@ class Movie
     public function removeActor(Actor $actor): static
     {
         $this->actors->removeElement($actor);
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): static
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setMovie($this);
+        }
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): static
+    {
+        if ($this->comments->removeElement($comment)) {
+            if ($comment->getMovie() === $this) {
+                $comment->setMovie(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getAuthor(): ?User
+    {
+        return $this->author;
+    }
+
+    public function setAuthor(?User $author): static
+    {
+        $this->author = $author;
+        return $this;
+    }
+
+    public function getPoster(): ?MediaObject
+    {
+        return $this->poster;
+    }
+
+    public function setPoster(?MediaObject $poster): static
+    {
+        $this->poster = $poster;
         return $this;
     }
 }
