@@ -9,7 +9,9 @@ security:
                 property: email
 
     role_hierarchy:
-        ROLE_ADMIN: [ROLE_USER]
+        ROLE_AUTHOR: [ROLE_USER]
+        ROLE_EDITOR: [ROLE_AUTHOR]
+        ROLE_ADMIN: [ROLE_EDITOR]
         ROLE_SUPER_ADMIN: [ROLE_ADMIN]
 
     firewalls:
@@ -19,7 +21,7 @@ security:
 
         # ✅ Route d'authentification (/auth)
         main:
-            pattern: ^/auth$
+            pattern: ^/auth
             stateless: true
             json_login:
                 check_path: /auth
@@ -48,6 +50,9 @@ security:
         - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [ GET ] }
         - { path: ^/api/actors, roles: PUBLIC_ACCESS, methods: [ GET ] }
         - { path: ^/api/directors, roles: PUBLIC_ACCESS, methods: [ GET ] }
+
+        # Commentaires en lecture publique (GET)
+        - { path: ^/api/comments, roles: PUBLIC_ACCESS, methods: [ GET ] }
 
         # Auth publique
         - { path: ^/auth, roles: PUBLIC_ACCESS }

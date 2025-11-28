@@ -19,3 +19,15 @@ services:
             $passwordHasher: '@Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface'
         tags:
             - { name: 'api_platform.state_processor' }
+    App\State\CommentProcessor:
+        decorates: api_platform.doctrine.orm.state.persist_processor  # Déco le processor ORM par défaut
+        arguments:
+            $decorated: '@App\State\CommentProcessor.inner'  # Lie à l'inner (chaînage auto)
+            $security: '@security.helper'  # Injection Security (déjà dispo)
+
+    App\State\MovieProcessor:
+        decorates: api_platform.doctrine.orm.state.persist_processor
+        decoration_priority: -10
+        arguments:
+            $decorated: '@App\State\MovieProcessor.inner'
+            $security: '@security.helper'
