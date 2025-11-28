@@ -15,6 +15,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Deprecated\Deprecated;  // ✅ AJOUT : Import pour l'attribut
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -36,7 +37,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             processor: UserPasswordHasher::class
         ),
         new Put(
-            security: "is_granted('ROLE_ADMIN')",
+            security: "is_granted('ROLE_ADMIN') or object == user",
             denormalizationContext: ['groups' => ['user:write']],
             normalizationContext: ['groups' => ['user:read']],
             processor: UserPasswordHasher::class
@@ -55,10 +56,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:write', 'user:read'])]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
     #[Assert\NotBlank]
     #[Assert\Email]
     private ?string $email = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
+    #[Assert\Length(max: 100)]
+    private ?string $nom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
+    #[Assert\Length(max: 100)]
+    private ?string $prenom = null;
 
     #[ORM\Column]
     #[Groups(['user:read', 'user:write'])]
@@ -86,6 +97,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->email = $email;
         return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): static
+    {
+        $this->nom = $nom;
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+
+    public function setPrenom(string $prenom): static
+    {
+        $this->prenom = $prenom;
+        return $this;
+    }
+
+    public function getFullName(): string
+    {
+        return trim($this->prenom . ' ' . $this->nom);
     }
 
     public function getUserIdentifier(): string
@@ -128,6 +166,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    #[Deprecated]  // ✅ AJOUT : Silencie le warning Symfony 7.3
     public function eraseCredentials(): void
     {
         $this->plainPassword = null;
