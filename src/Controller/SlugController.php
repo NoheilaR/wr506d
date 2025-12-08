@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Movie;
+use DateTimeImmutable;
 
 class SlugController extends AbstractController
 {
@@ -26,7 +27,7 @@ class SlugController extends AbstractController
     {
         $movie = new Movie();
         $movie->setTitle('Inception');
-        $movie->setReleasedAt(new \DateTimeImmutable('2010-07-16'));
+        $movie->setReleasedAt(new DateTimeImmutable('2010-07-16'));
 
         $em->persist($movie);
         $em->flush();

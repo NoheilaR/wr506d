@@ -5,16 +5,14 @@ namespace App\DataFixtures;
 use App\Entity\Comment;
 use App\Entity\Movie;
 use App\Entity\User;
-use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
-use Faker\Factory;
 
-class CommentFixtures extends Fixture implements DependentFixtureInterface
+class CommentFixtures extends BaseFixture implements DependentFixtureInterface
 {
     public function load(ObjectManager $manager): void
     {
-        $faker = Factory::create('fr_FR');
+        $faker = $this->createFaker('fr_FR');
 
         // Charger les films et utilisateurs EXISTANTS
         $movieRepository = $manager->getRepository(Movie::class);

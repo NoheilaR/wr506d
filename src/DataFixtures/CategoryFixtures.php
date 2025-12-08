@@ -3,23 +3,24 @@
 namespace App\DataFixtures;
 
 use App\Entity\Category;
-use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
-use Faker\Factory;
 use Xylis\FakerCinema\Provider\Movie as MovieProvider;
 
-class CategoryFixtures extends Fixture
+class CategoryFixtures extends BaseFixture
 {
     public function load(ObjectManager $manager): void
     {
-        $faker = Factory::create();
+        $faker = $this->createFaker();
         $faker->addProvider(new MovieProvider($faker));
 
-        // On limite à 8 genres uniques
+        // On limite à 20 genres uniques
         $genres = [];
-        while (count($genres) < 20) {
+        $targetCount = 20;
+        $genresCount = 0;
+        while ($genresCount < $targetCount) {
             $genres[] = $faker->movieGenre;
             $genres = array_unique($genres);
+            $genresCount = count($genres);
         }
 
         foreach ($genres as $index => $genre) {
