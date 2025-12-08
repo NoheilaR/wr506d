@@ -2,7 +2,6 @@
 
 namespace App\Entity;
 
-use App\Entity\MediaObject;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
@@ -20,7 +19,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use DateTimeInterface;
+use DateTimeImmutable;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -31,9 +30,9 @@ use DateTimeInterface;
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Put(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new Post(security: "is_granted('ROLE_AUTHOR')"),
+        new Put(security: "is_granted('ROLE_EDITOR') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"),
+        new Delete(security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)")
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -42,10 +41,13 @@ use DateTimeInterface;
     'actors.lastname' => 'partial',
     'actors.firstname' => 'partial',
     'director.lastname' => 'partial',
-    'director.firstname' => 'partial'
+    'director.firstname' => 'partial',
+    'author' => 'exact'
 ])]
 #[ApiFilter(DateFilter::class, properties: [
-    'actors.dob'
+    'actors.dob',
+    'createdAt',
+    'releaseDate'
 ])]
 #[ApiFilter(RangeFilter::class, properties: [
     'duration',
@@ -61,7 +63,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['movie:read'])]
+    #[Groups(['movie:read', 'comment:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -72,7 +74,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read', 'movie:write', 'comment:read'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -94,15 +96,10 @@ class Movie
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
-    #[Assert\Type(DateTimeInterface::class)]
+    #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
     #[Groups(['movie:read', 'movie:write'])]
-    private ?DateTimeInterface $releaseDate = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'image doit être une URL valide", requireTld: false)]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?string $image = null;
+    private ?\DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero(message: "Le nombre d'entrées doit être positif ou nul")]
@@ -116,7 +113,7 @@ class Movie
     private ?Director $director = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'URL doit être valide", requireTld: false)]
+    #[Assert\Url(message: "L'URL doit être valide")]
     #[Groups(['movie:read', 'movie:write'])]
     private ?string $url = null;
 
@@ -128,6 +125,16 @@ class Movie
     #[ORM\Column(updatable: false)]
     #[Groups(['movie:read'])]
     private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['movie:read'])]
+    private ?User $author = null;
+
+    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['movie:read', 'movie:write'])]
+    private ?MediaObject $poster = null;
 
     /**
      * @var Collection<int, Category>
@@ -145,20 +152,24 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private Collection $actors;
 
-    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?MediaObject $poster = null;
+    /**
+     * @var Collection<int, Comment>
+     */
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'movie', orphanRemoval: true)]
+    #[Groups(['movie:read'])]
+    private Collection $comments;
 
     public function __construct()
     {
         $this->categories = new ArrayCollection();
         $this->actors = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -199,25 +210,14 @@ class Movie
         return $this;
     }
 
-    public function getReleaseDate(): ?DateTimeInterface
+    public function getReleaseDate(): ?\DateTimeInterface
     {
         return $this->releaseDate;
     }
 
-    public function setReleaseDate(?DateTimeInterface $releaseDate): static
+    public function setReleaseDate(?\DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
-        return $this;
-    }
-
-    public function getImage(): ?string
-    {
-        return $this->image;
-    }
-
-    public function setImage(?string $image): static
-    {
-        $this->image = $image;
         return $this;
     }
 
@@ -276,27 +276,9 @@ class Movie
         return $this;
     }
 
-    public function getPoster(): ?MediaObject
-    {
-        return $this->poster;
-    }
-
-    public function setPoster(?MediaObject $poster): static
-    {
-        $this->poster = $poster;
-        return $this;
-    }
-
-    public function setTitle(string $title): static
-    {
-        return $this->setName($title);
-    }
-
-    public function setReleasedAt(?\DateTimeImmutable $date): static
-    {
-        return $this->setReleaseDate($date);
-    }
-
+    /**
+     * @return Collection<int, Category>
+     */
     public function getCategories(): Collection
     {
         return $this->categories;
@@ -316,6 +298,9 @@ class Movie
         return $this;
     }
 
+    /**
+     * @return Collection<int, Actor>
+     */
     public function getActors(): Collection
     {
         return $this->actors;
@@ -332,6 +317,55 @@ class Movie
     public function removeActor(Actor $actor): static
     {
         $this->actors->removeElement($actor);
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): static
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setMovie($this);
+        }
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): static
+    {
+        if ($this->comments->removeElement($comment)) {
+            if ($comment->getMovie() === $this) {
+                $comment->setMovie(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getAuthor(): ?User
+    {
+        return $this->author;
+    }
+
+    public function setAuthor(?User $author): static
+    {
+        $this->author = $author;
+        return $this;
+    }
+
+    public function getPoster(): ?MediaObject
+    {
+        return $this->poster;
+    }
+
+    public function setPoster(?MediaObject $poster): static
+    {
+        $this->poster = $poster;
         return $this;
     }
 }

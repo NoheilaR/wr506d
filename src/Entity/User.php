@@ -36,7 +36,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             processor: UserPasswordHasher::class
         ),
         new Put(
-            security: "is_granted('ROLE_ADMIN')",
+            security: "is_granted('ROLE_ADMIN') or object == user",
             denormalizationContext: ['groups' => ['user:write']],
             normalizationContext: ['groups' => ['user:read']],
             processor: UserPasswordHasher::class
@@ -55,14 +55,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['user:write', 'user:read'])]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
     #[Assert\NotBlank]
     #[Assert\Email]
     private ?string $email = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
+    #[Assert\Length(max: 100)]
+    private ?string $nom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:write', 'user:read', 'comment:read', 'movie:read'])]
+    #[Assert\Length(max: 100)]
+    private ?string $prenom = null;
+
     #[ORM\Column]
     #[Groups(['user:read', 'user:write'])]
     private array $roles = [];
+
+    // ✅ NOUVEAU : Limite de requêtes API par heure
+    #[ORM\Column(type: 'integer', options: ['default' => 50])]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\Positive]
+    private int $apiRateLimit = 50;
 
     #[ORM\Column(updatable: false)]
     private ?string $password = null;
@@ -88,6 +104,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): static
+    {
+        $this->nom = $nom;
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+
+    public function setPrenom(string $prenom): static
+    {
+        $this->prenom = $prenom;
+        return $this;
+    }
+
+    public function getFullName(): string
+    {
+        return trim($this->prenom . ' ' . $this->nom);
+    }
+
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
@@ -103,6 +146,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
+        return $this;
+    }
+
+    // ✅ NOUVEAU : Getter/Setter pour apiRateLimit
+    public function getApiRateLimit(): int
+    {
+        return $this->apiRateLimit;
+    }
+
+    public function setApiRateLimit(int $apiRateLimit): static
+    {
+        $this->apiRateLimit = $apiRateLimit;
         return $this;
     }
 

@@ -19,6 +19,8 @@ class MeController extends AbstractController
         return new JsonResponse([
             'id' => $user->getId(),
             'email' => $user->getEmail(),
+            'nom' => $user->getNom(),
+            'prenom' => $user->getPrenom(),
             'roles' => $user->getRoles(),
         ]);
     }

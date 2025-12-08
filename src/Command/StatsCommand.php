@@ -52,7 +52,7 @@ class StatsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $io->title('Commande de statistiques interactives');
+        $io->title('📊 Commande de statistiques interactives');
 
         $type = $io->choice(
             'Quel type de statistiques veux-tu afficher ?',
@@ -61,177 +61,157 @@ class StatsCommand extends Command
         );
 
         $stats = $this->collectStats();
-        $result = $this->generateStatsForType($type, $stats);
+        $result = $this->generateOutput($type, $stats, $io);
 
-        $this->displayResults($io, $result, $type);
-        $this->handleLogFile($input, $io, $result['outputText']);
-        $this->handleEmail($input, $io, $result['outputText']);
+        $this->displayResults($io, $type, $result);
+        $this->handleLogFile($input, $result['text']);
+        $this->handleEmail($input, $result['text'], $io);
 
         return Command::SUCCESS;
     }
 
     private function collectStats(): array
     {
-        $images = $this->scanImagesDirectory();
+        $imageData = $this->calculateImageStats();
 
         return [
             'nbMovies' => $this->movieRepository->count([]),
             'nbActors' => $this->actorRepository->count([]),
             'nbCategories' => $this->categoryRepository->count([]),
             'nbMedia' => $this->mediaObjectRepository->count([]),
-            'images' => $images['files'],
-            'totalSizeMb' => $images['totalSizeMb'],
+            'images' => $imageData['images'],
+            'totalSizeMb' => $imageData['totalSizeMb'],
         ];
     }
 
-    private function scanImagesDirectory(): array
+    private function calculateImageStats(): array
     {
+        $totalSize = 0;
         $path = __DIR__ . '/../../public/uploads/actors';
         $images = [];
-        $totalSize = 0;
 
-        if (!is_dir($path)) {
-            return ['files' => [], 'totalSizeMb' => 0];
-        }
-
-        $files = scandir($path);
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..') {
-                continue;
+        if (is_dir($path)) {
+            foreach (scandir($path) as $file) {
+                if ($file !== '.' && $file !== '..') {
+                    $size = filesize($path . '/' . $file);
+                    $totalSize += $size;
+                    $images[] = [$file, round($size / 1024, 2) . ' Ko'];
+                }
             }
-
-            $filePath = $path . '/' . $file;
-            $size = filesize($filePath);
-            $totalSize += $size;
-            $images[] = [$file, round($size / 1024, 2) . ' Ko'];
         }
 
         return [
-            'files' => $images,
+            'images' => $images,
             'totalSizeMb' => round($totalSize / 1024 / 1024, 2),
         ];
     }
 
-    private function generateStatsForType(string $type, array $stats): array
+    private function generateOutput(string $type, array $stats, SymfonyStyle $io): array
     {
-        return match ($type) {
-            'movies' => $this->getMovieStats($stats),
-            'actors' => $this->getActorStats($stats),
-            'categories' => $this->getCategoryStats($stats),
-            'images' => $this->getImageStats($stats),
-            'all' => $this->getAllStats($stats),
-            default => ['table' => [], 'outputText' => '', 'headers' => []],
-        };
+        $table = [];
+        $outputText = '';
+
+        switch ($type) {
+            case 'movies':
+                $table[] = ['Films', $stats['nbMovies']];
+                $outputText = "🎬 Nombre total de films : {$stats['nbMovies']}";
+                break;
+
+            case 'actors':
+                $table[] = ['Acteurs', $stats['nbActors']];
+                $outputText = "🧑‍🎤 Nombre d'acteurs : {$stats['nbActors']}";
+                break;
+
+            case 'categories':
+                $result = $this->generateCategoryOutput($stats['nbCategories']);
+                $table = $result['table'];
+                $outputText = $result['text'];
+                break;
+
+            case 'images':
+                $result = $this->generateImageOutput($stats, $io);
+                $table = $result['table'];
+                $outputText = $result['text'];
+                break;
+
+            case 'all':
+                $table = [
+                    ['Films', $stats['nbMovies']],
+                    ['Acteurs', $stats['nbActors']],
+                    ['Catégories', $stats['nbCategories']],
+                    ['Images', $stats['nbMedia']],
+                    ['Poids total', "{$stats['totalSizeMb']} Mo"],
+                ];
+                $outputText = "🎬 {$stats['nbMovies']} films | 🧑‍🎤 {$stats['nbActors']} acteurs | "
+                    . "📂 {$stats['nbCategories']} catégories | "
+                    . "🖼️ {$stats['nbMedia']} images ({$stats['totalSizeMb']} Mo)";
+                break;
+        }
+
+        return ['table' => $table, 'text' => $outputText];
     }
 
-    private function getMovieStats(array $stats): array
-    {
-        return [
-            'table' => [['Films', $stats['nbMovies']]],
-            'outputText' => " Nombre total de films : {$stats['nbMovies']}",
-            'headers' => ['Nom de l\'entité', 'Valeur'],
-        ];
-    }
-
-    private function getActorStats(array $stats): array
-    {
-        return [
-            'table' => [['Acteurs', $stats['nbActors']]],
-            'outputText' => " Nombre d'acteurs : {$stats['nbActors']}",
-            'headers' => ['Nom de l\'entité', 'Valeur'],
-        ];
-    }
-
-    private function getCategoryStats(array $stats): array
+    private function generateCategoryOutput(int $nbCategories): array
     {
         $categories = $this->categoryRepository->findAll();
         $table = [];
-
         foreach ($categories as $category) {
             $table[] = [
                 $category->getName(),
                 $category->getMovies()->count() . ' film(s)'
             ];
         }
-
-        return [
-            'table' => $table,
-            'outputText' => "Nombre total de catégories : {$stats['nbCategories']}",
-            'headers' => ['Nom de la catégorie', 'Nombre de films'],
-        ];
+        $text = "📂 Nombre total de catégories : $nbCategories";
+        return ['table' => $table, 'text' => $text];
     }
 
-    private function getImageStats(array $stats): array
+    private function generateImageOutput(array $stats, SymfonyStyle $io): array
     {
-        $table = empty($stats['images']) ? [] : $stats['images'];
-        $table[] = [' Total', "{$stats['totalSizeMb']} Mo"];
-
-        return [
-            'table' => $table,
-            'outputText' => "Nombre d'images : {$stats['nbMedia']} | "
-                . "Poids total : {$stats['totalSizeMb']} Mo",
-            'headers' => ['Nom du fichier', 'Taille'],
-        ];
+        $table = [];
+        if (empty($stats['images'])) {
+            $io->warning('Aucune image trouvée dans le dossier.');
+        }
+        $table = $stats['images'];
+        $table[] = ['💾 Total', "{$stats['totalSizeMb']} Mo"];
+        $text = "🖼️ Nombre d'images : {$stats['nbMedia']} | "
+            . "💾 Poids total : {$stats['totalSizeMb']} Mo";
+        return ['table' => $table, 'text' => $text];
     }
 
-    private function getAllStats(array $stats): array
-    {
-        return [
-            'table' => [
-                ['Films', $stats['nbMovies']],
-                ['Acteurs', $stats['nbActors']],
-                ['Catégories', $stats['nbCategories']],
-                ['Images', $stats['nbMedia']],
-                ['Poids total', "{$stats['totalSizeMb']} Mo"],
-            ],
-            'outputText' => " {$stats['nbMovies']} films | "
-                . " {$stats['nbActors']} acteurs | "
-                . " {$stats['nbCategories']} catégories | "
-                . " {$stats['nbMedia']} images ({$stats['totalSizeMb']} Mo)",
-            'headers' => ['Nom de l\'entité', 'Valeur'],
-        ];
-    }
-
-    private function displayResults(SymfonyStyle $io, array $result, string $type): void
+    private function displayResults(SymfonyStyle $io, string $type, array $result): void
     {
         $io->section('Résultats');
 
-        if ($type === 'images' && empty($result['table'])) {
-            $io->warning('Aucune image trouvée dans le dossier.');
-            return;
-        }
+        $headers = match ($type) {
+            'categories' => ['Nom de la catégorie', 'Nombre de films'],
+            'images' => ['Nom du fichier', 'Taille'],
+            default => ['Nom de l\'entité', 'Valeur'],
+        };
 
-        $io->table($result['headers'], $result['table']);
-        $io->success('Statistiques générées avec succès ');
+        $io->table($headers, $result['table']);
+        $io->success('Statistiques générées avec succès');
     }
 
-    private function handleLogFile(InputInterface $input, SymfonyStyle $io, string $content): void
+    private function handleLogFile(InputInterface $input, string $outputText): void
     {
         $logFile = $input->getOption('log-file');
-
-        if (!$logFile) {
-            return;
+        if ($logFile) {
+            file_put_contents($logFile, $outputText . PHP_EOL, FILE_APPEND);
         }
-
-        file_put_contents($logFile, $content . PHP_EOL, FILE_APPEND);
-        $io->writeln(" Résultat enregistré dans le fichier : $logFile");
     }
 
-    private function handleEmail(InputInterface $input, SymfonyStyle $io, string $content): void
+    private function handleEmail(InputInterface $input, string $outputText, SymfonyStyle $io): void
     {
         $sendMail = $input->getOption('send-mail');
+        if ($sendMail) {
+            $email = (new Email())
+                ->from('noreply@monapp.com')
+                ->to($sendMail)
+                ->subject('📊 Statistiques de la base de données')
+                ->text($outputText);
 
-        if (!$sendMail) {
-            return;
+            $this->mailer->send($email);
+            $io->writeln("📧 Email envoyé à : $sendMail");
         }
-
-        $email = (new Email())
-            ->from('noreply@monapp.com')
-            ->to($sendMail)
-            ->subject(' Statistiques de la base de données')
-            ->text($content);
-
-        $this->mailer->send($email);
-        $io->writeln(" Email envoyé à : $sendMail");
     }
 }
