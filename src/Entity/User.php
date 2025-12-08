@@ -15,7 +15,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Deprecated\Deprecated;  // ✅ AJOUT : Import pour l'attribut
+use Symfony\Component\Deprecated\Deprecated;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -74,6 +74,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     #[Groups(['user:read', 'user:write'])]
     private array $roles = [];
+
+    // ✅ NOUVEAU : Limite de requêtes API par heure
+    #[ORM\Column(type: 'integer', options: ['default' => 50])]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\Positive]
+    private int $apiRateLimit = 50;
 
     #[ORM\Column(updatable: false)]
     private ?string $password = null;
@@ -144,6 +150,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    // ✅ NOUVEAU : Getter/Setter pour apiRateLimit
+    public function getApiRateLimit(): int
+    {
+        return $this->apiRateLimit;
+    }
+
+    public function setApiRateLimit(int $apiRateLimit): static
+    {
+        $this->apiRateLimit = $apiRateLimit;
+        return $this;
+    }
+
     public function getPassword(): ?string
     {
         return $this->password;
@@ -166,7 +184,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    #[Deprecated]  // ✅ AJOUT : Silencie le warning Symfony 7.3
+    #[Deprecated]
     public function eraseCredentials(): void
     {
         $this->plainPassword = null;
