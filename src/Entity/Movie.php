@@ -113,7 +113,7 @@ class Movie
     private ?Director $director = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'URL doit être valide")]
+    #[Assert\Url(message: "L'URL doit être valide", requireTld: false)]
     #[Groups(['movie:read', 'movie:write'])]
     private ?string $url = null;
 
