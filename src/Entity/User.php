@@ -74,6 +74,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private array $roles = [];
 
+    // ✅ NOUVEAU : Limite de requêtes API par heure
+    #[ORM\Column(type: 'integer', options: ['default' => 50])]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\Positive]
+    private int $apiRateLimit = 50;
+
     #[ORM\Column(updatable: false)]
     private ?string $password = null;
 
@@ -140,6 +146,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
+        return $this;
+    }
+
+    // ✅ NOUVEAU : Getter/Setter pour apiRateLimit
+    public function getApiRateLimit(): int
+    {
+        return $this->apiRateLimit;
+    }
+
+    public function setApiRateLimit(int $apiRateLimit): static
+    {
+        $this->apiRateLimit = $apiRateLimit;
         return $this;
     }
 

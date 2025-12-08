@@ -31,3 +31,8 @@ services:
         arguments:
             $decorated: '@App\State\MovieProcessor.inner'
             $security: '@security.helper'
+
+#    App\EventSubscriber\ApiRateLimitSubscriber:
+#            arguments:
+#                $anonymousApiLimiter: '@limiter.anonymous_api'
+#                $storage: '@cache.app'
