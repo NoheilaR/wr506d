@@ -6,17 +6,15 @@ use App\Entity\Movie;
 use App\Entity\Actor;
 use App\Entity\Category;
 use App\Entity\Director;
-use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
-use Faker\Factory;
 use Xylis\FakerCinema\Provider\Movie as MovieProvider;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 
-class MovieFixtures extends Fixture implements DependentFixtureInterface
+class MovieFixtures extends BaseFixture implements DependentFixtureInterface
 {
     public function load(ObjectManager $manager): void
     {
-        $faker = Factory::create();
+        $faker = $this->createFaker();
         $faker->addProvider(new MovieProvider($faker));
 
         // Charger acteurs, catégories, réalisateurs
@@ -52,9 +50,8 @@ class MovieFixtures extends Fixture implements DependentFixtureInterface
             $movie->setDescription($faker->overview);
             $movie->setDuration($faker->numberBetween(80, 180));
             $movie->setReleaseDate($faker->dateTimeBetween('-30 years', 'now'));
-            $movie->setImage("https://placehold.co/600x600/117fe8/white?text=Movie+$i");
 
-            // ✅ nouveaux champs
+            // nouveaux champs
             $movie->setNbEntries($faker->numberBetween(10000, 5000000));
             $movie->setUrl($faker->url);
             $movie->setBudget($faker->randomFloat(2, 1000000, 500000000));

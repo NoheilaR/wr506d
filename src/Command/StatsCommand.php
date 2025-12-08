@@ -60,14 +60,32 @@ class StatsCommand extends Command
             'all'
         );
 
-        $logFile = $input->getOption('log-file');
-        $sendMail = $input->getOption('send-mail');
+        $stats = $this->collectStats();
+        $result = $this->generateOutput($type, $stats, $io);
 
-        $nbMovies = $this->movieRepository->count([]);
-        $nbActors = $this->actorRepository->count([]);
-        $nbCategories = $this->categoryRepository->count([]);
-        $nbMedia = $this->mediaObjectRepository->count([]);
+        $this->displayResults($io, $type, $result);
+        $this->handleLogFile($input, $result['text']);
+        $this->handleEmail($input, $result['text'], $io);
 
+        return Command::SUCCESS;
+    }
+
+    private function collectStats(): array
+    {
+        $imageData = $this->calculateImageStats();
+
+        return [
+            'nbMovies' => $this->movieRepository->count([]),
+            'nbActors' => $this->actorRepository->count([]),
+            'nbCategories' => $this->categoryRepository->count([]),
+            'nbMedia' => $this->mediaObjectRepository->count([]),
+            'images' => $imageData['images'],
+            'totalSizeMb' => $imageData['totalSizeMb'],
+        ];
+    }
+
+    private function calculateImageStats(): array
+    {
         $totalSize = 0;
         $path = __DIR__ . '/../../public/uploads/actors';
         $images = [];
@@ -82,57 +100,86 @@ class StatsCommand extends Command
             }
         }
 
-        $totalSizeMb = round($totalSize / 1024 / 1024, 2);
+        return [
+            'images' => $images,
+            'totalSizeMb' => round($totalSize / 1024 / 1024, 2),
+        ];
+    }
+
+    private function generateOutput(string $type, array $stats, SymfonyStyle $io): array
+    {
         $table = [];
         $outputText = '';
 
         switch ($type) {
             case 'movies':
-                $table[] = ['Films', $nbMovies];
-                $outputText = "🎬 Nombre total de films : $nbMovies";
+                $table[] = ['Films', $stats['nbMovies']];
+                $outputText = "🎬 Nombre total de films : {$stats['nbMovies']}";
                 break;
 
             case 'actors':
-                $table[] = ['Acteurs', $nbActors];
-                $outputText = "🧑‍🎤 Nombre d'acteurs : $nbActors";
+                $table[] = ['Acteurs', $stats['nbActors']];
+                $outputText = "🧑‍🎤 Nombre d'acteurs : {$stats['nbActors']}";
                 break;
 
             case 'categories':
-                $categories = $this->categoryRepository->findAll();
-                foreach ($categories as $category) {
-                    $table[] = [
-                        $category->getName(),
-                        $category->getMovies()->count() . ' film(s)'
-                    ];
-                }
-                $outputText = "📂 Nombre total de catégories : $nbCategories";
+                $result = $this->generateCategoryOutput($stats['nbCategories']);
+                $table = $result['table'];
+                $outputText = $result['text'];
                 break;
 
             case 'images':
-                if (empty($images)) {
-                    $io->warning('Aucune image trouvée dans le dossier.');
-                } else {
-                    $table = $images;
-                }
-                $table[] = ['💾 Total', "{$totalSizeMb} Mo"];
-                $outputText = "🖼️ Nombre d'images : $nbMedia | "
-                    . "💾 Poids total : {$totalSizeMb} Mo";
+                $result = $this->generateImageOutput($stats, $io);
+                $table = $result['table'];
+                $outputText = $result['text'];
                 break;
 
             case 'all':
                 $table = [
-                    ['Films', $nbMovies],
-                    ['Acteurs', $nbActors],
-                    ['Catégories', $nbCategories],
-                    ['Images', $nbMedia],
-                    ['Poids total', "{$totalSizeMb} Mo"],
+                    ['Films', $stats['nbMovies']],
+                    ['Acteurs', $stats['nbActors']],
+                    ['Catégories', $stats['nbCategories']],
+                    ['Images', $stats['nbMedia']],
+                    ['Poids total', "{$stats['totalSizeMb']} Mo"],
                 ];
-                $outputText = "🎬 $nbMovies films | 🧑‍🎤 $nbActors acteurs | "
-                    . "📂 $nbCategories catégories | "
-                    . "🖼️ $nbMedia images ({$totalSizeMb} Mo)";
+                $outputText = "🎬 {$stats['nbMovies']} films | 🧑‍🎤 {$stats['nbActors']} acteurs | "
+                    . "📂 {$stats['nbCategories']} catégories | "
+                    . "🖼️ {$stats['nbMedia']} images ({$stats['totalSizeMb']} Mo)";
                 break;
         }
 
+        return ['table' => $table, 'text' => $outputText];
+    }
+
+    private function generateCategoryOutput(int $nbCategories): array
+    {
+        $categories = $this->categoryRepository->findAll();
+        $table = [];
+        foreach ($categories as $category) {
+            $table[] = [
+                $category->getName(),
+                $category->getMovies()->count() . ' film(s)'
+            ];
+        }
+        $text = "📂 Nombre total de catégories : $nbCategories";
+        return ['table' => $table, 'text' => $text];
+    }
+
+    private function generateImageOutput(array $stats, SymfonyStyle $io): array
+    {
+        $table = [];
+        if (empty($stats['images'])) {
+            $io->warning('Aucune image trouvée dans le dossier.');
+        }
+        $table = $stats['images'];
+        $table[] = ['💾 Total', "{$stats['totalSizeMb']} Mo"];
+        $text = "🖼️ Nombre d'images : {$stats['nbMedia']} | "
+            . "💾 Poids total : {$stats['totalSizeMb']} Mo";
+        return ['table' => $table, 'text' => $text];
+    }
+
+    private function displayResults(SymfonyStyle $io, string $type, array $result): void
+    {
         $io->section('Résultats');
 
         $headers = match ($type) {
@@ -141,14 +188,21 @@ class StatsCommand extends Command
             default => ['Nom de l\'entité', 'Valeur'],
         };
 
-        $io->table($headers, $table);
-        $io->success('Statistiques générées avec succès ✅');
+        $io->table($headers, $result['table']);
+        $io->success('Statistiques générées avec succès');
+    }
 
+    private function handleLogFile(InputInterface $input, string $outputText): void
+    {
+        $logFile = $input->getOption('log-file');
         if ($logFile) {
             file_put_contents($logFile, $outputText . PHP_EOL, FILE_APPEND);
-            $io->writeln("🗂️ Résultat enregistré dans le fichier : $logFile");
         }
+    }
 
+    private function handleEmail(InputInterface $input, string $outputText, SymfonyStyle $io): void
+    {
+        $sendMail = $input->getOption('send-mail');
         if ($sendMail) {
             $email = (new Email())
                 ->from('noreply@monapp.com')
@@ -159,7 +213,5 @@ class StatsCommand extends Command
             $this->mailer->send($email);
             $io->writeln("📧 Email envoyé à : $sendMail");
         }
-
-        return Command::SUCCESS;
     }
 }

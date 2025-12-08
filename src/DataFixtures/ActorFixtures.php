@@ -4,16 +4,14 @@ namespace App\DataFixtures;
 
 use App\Entity\Actor;
 use App\Entity\MediaObject;
-use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
-use Faker\Factory;
 use Symfony\Component\HttpFoundation\File\File;
 
-class ActorFixtures extends Fixture
+class ActorFixtures extends BaseFixture
 {
     public function load(ObjectManager $manager): void
     {
-        $faker = Factory::create();
+        $faker = $this->createFaker();
 
         // Créer le dossier temporaire si nécessaire
         $tmpDir = sys_get_temp_dir() . '/actor_fixtures';
@@ -38,7 +36,7 @@ class ActorFixtures extends Fixture
             // Créer un MediaObject pour la photo de l'acteur
             try {
                 $imageUrl = "https://placehold.co/300x300/png?text=Actor+" . ($i + 1);
-                $imageContent = @file_get_contents($imageUrl);
+                $imageContent = file_get_contents($imageUrl);
 
                 if ($imageContent !== false) {
                     $tmpFile = $tmpDir . '/actor_' . $i . '.png';
@@ -74,7 +72,9 @@ class ActorFixtures extends Fixture
             if ($files) {
                 array_map('unlink', $files);
             }
-            @rmdir($tmpDir);
+            if (is_dir($tmpDir)) {
+                rmdir($tmpDir);
+            }
         }
     }
 }

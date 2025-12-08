@@ -5,6 +5,7 @@ namespace App\EventListener;
 use App\Entity\LogAction;
 use App\Event\EntitySavedEvent;
 use Doctrine\ORM\EntityManagerInterface;
+use DateTimeImmutable;
 
 class EntitySavedListener
 {
@@ -21,7 +22,7 @@ class EntitySavedListener
 
         $log = new LogAction();
         $log->setAction('Film enregistré : ' . $movie->getTitle());
-        $log->setCreatedAt(new \DateTimeImmutable());
+        $log->setCreatedAt(new DateTimeImmutable());
 
         $this->em->persist($log);
         $this->em->flush();

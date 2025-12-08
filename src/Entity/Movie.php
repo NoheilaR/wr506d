@@ -19,6 +19,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use DateTimeImmutable;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -100,11 +101,6 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private ?\DateTimeInterface $releaseDate = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'image doit être une URL valide")]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?string $image = null;
-
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero(message: "Le nombre d'entrées doit être positif ou nul")]
     #[Groups(['movie:read', 'movie:write'])]
@@ -173,7 +169,7 @@ class Movie
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -222,17 +218,6 @@ class Movie
     public function setReleaseDate(?\DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
-        return $this;
-    }
-
-    public function getImage(): ?string
-    {
-        return $this->image;
-    }
-
-    public function setImage(?string $image): static
-    {
-        $this->image = $image;
         return $this;
     }
 

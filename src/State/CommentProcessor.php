@@ -24,7 +24,8 @@ final class CommentProcessor implements ProcessorInterface
         if ($data instanceof Comment) {
             try {
                 $user = $this->security->getUser();
-                $this->logger->info('User from security: ' . (is_object($user) ? get_class($user) . ' ID: ' . $user->getId() : 'null'));
+                $userInfo = is_object($user) ? get_class($user) . ' ID: ' . $user->getId() : 'null';
+                $this->logger->info('User from security: ' . $userInfo);
 
                 if (!$user instanceof User) {
                     $this->logger->error('User not instanceof User in CommentProcessor');
