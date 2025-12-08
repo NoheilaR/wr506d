@@ -32,14 +32,8 @@ class UpdateUserRateLimitsCommand extends Command
 
         foreach ($users as $user) {
             $roles = $user->getRoles();
-
-            if (in_array('ROLE_ADMIN', $roles, true)) {
-                $user->setApiRateLimit(1000); // Admins : 1000 requêtes
-            } elseif (in_array('ROLE_EDITOR', $roles, true)) {
-                $user->setApiRateLimit(500); // ✅ Éditeurs : 500 requêtes
-            } else {
-                $user->setApiRateLimit(50); // ✅ Users normaux : 50 requêtes
-            }
+            $rateLimit = $this->getRateLimitForRoles($roles);
+            $user->setApiRateLimit($rateLimit);
 
             $io->info(sprintf(
                 'User %s (%s): %d requests/hour',
@@ -54,5 +48,16 @@ class UpdateUserRateLimitsCommand extends Command
         $io->success('Rate limits updated successfully!');
 
         return Command::SUCCESS;
+    }
+
+    private function getRateLimitForRoles(array $roles): int
+    {
+        if (in_array('ROLE_ADMIN', $roles, true)) {
+            return 1000;
+        }
+        if (in_array('ROLE_EDITOR', $roles, true)) {
+            return 500;
+        }
+        return 50;
     }
 }

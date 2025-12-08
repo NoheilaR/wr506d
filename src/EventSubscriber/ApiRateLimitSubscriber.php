@@ -53,21 +53,10 @@ class ApiRateLimitSubscriber implements EventSubscriberInterface
         $user = $token?->getUser();
         $isAuthenticated = $user instanceof User;
 
-        if ($isAuthenticated) {
-            $identifier = $user->getUserIdentifier();
-            $userCustomLimit = $user->getApiRateLimit();
-
-            $limiter = new SlidingWindowLimiter(
-                id: 'user_' . $identifier,
-                limit: $userCustomLimit,
-                interval: \DateInterval::createFromDateString('1 hour'),
-                storage: $this->storage
-            );
-        } else {
-            $identifier = $request->getClientIp() ?? 'unknown';
-            $limiter = $this->anonymousApiLimiter->create($identifier);
-            $userCustomLimit = 10;
-        }
+        $limiterData = $this->createLimiterForUser($user, $request, $isAuthenticated);
+        $limiter = $limiterData['limiter'];
+        $userCustomLimit = $limiterData['limit'];
+        $identifier = $limiterData['identifier'];
 
         $limitInfo = $limiter->consume();
 
@@ -122,5 +111,41 @@ class ApiRateLimitSubscriber implements EventSubscriberInterface
         $response->headers->set('X-RateLimit-Reset', (string) $rateLimitInfo['reset']);
         $response->headers->set('X-Debug-User', $rateLimitInfo['user']);
         $response->headers->set('X-Debug-Consumed', (string) $rateLimitInfo['consumed']);
+    }
+
+    private function createLimiterForUser($user, $request, bool $isAuthenticated): array
+    {
+        if ($isAuthenticated && $user instanceof User) {
+            $identifier = $user->getUserIdentifier();
+            $userCustomLimit = $user->getApiRateLimit();
+
+            $limiter = new SlidingWindowLimiter(
+                id: 'user_' . $identifier,
+                limit: $userCustomLimit,
+                interval: $this->createOneHourInterval(),
+                storage: $this->storage
+            );
+
+            return [
+                'limiter' => $limiter,
+                'limit' => $userCustomLimit,
+                'identifier' => $identifier,
+            ];
+        }
+
+        $identifier = $request->getClientIp() ?? 'unknown';
+        return [
+            'limiter' => $this->anonymousApiLimiter->create($identifier),
+            'limit' => 10,
+            'identifier' => $identifier,
+        ];
+    }
+
+    /**
+     * @SuppressWarnings(PHPMD.StaticAccess)
+     */
+    private function createOneHourInterval(): \DateInterval
+    {
+        return \DateInterval::createFromDateString('1 hour');
     }
 }
