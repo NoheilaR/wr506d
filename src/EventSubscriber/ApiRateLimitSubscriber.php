@@ -95,7 +95,6 @@ class ApiRateLimitSubscriber implements EventSubscriberInterface
         }
     }
 
-    // ✅ CETTE MÉTHODE ÉTAIT MANQUANTE
     public function onKernelResponse(ResponseEvent $event): void
     {
         $request = $event->getRequest();
