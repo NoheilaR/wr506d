@@ -80,6 +80,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Positive]
     private int $apiRateLimit = 50;
 
+    // ✅ API Key Management
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    #[Assert\Length(exactly: 64)]
+    #[Groups(['user:read'])]
+    private ?string $apiKeyHash = null;
+
+    #[ORM\Column(length: 16, nullable: true)]
+    #[Assert\Length(exactly: 16)]
+    #[Groups(['user:read'])]
+    private ?string $apiKeyPrefix = null;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['user:read', 'user:write'])]
+    private bool $apiKeyEnabled = false;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $apiKeyCreatedAt = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $apiKeyLastUsedAt = null;
+
     #[ORM\Column(updatable: false)]
     private ?string $password = null;
 
@@ -186,6 +209,111 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         $this->plainPassword = null;
+    }
+
+    // ✅ API Key Management Methods
+
+    public function getApiKeyHash(): ?string
+    {
+        return $this->apiKeyHash;
+    }
+
+    public function setApiKeyHash(?string $apiKeyHash): static
+    {
+        $this->apiKeyHash = $apiKeyHash;
+        return $this;
+    }
+
+    public function getApiKeyPrefix(): ?string
+    {
+        return $this->apiKeyPrefix;
+    }
+
+    public function setApiKeyPrefix(?string $apiKeyPrefix): static
+    {
+        $this->apiKeyPrefix = $apiKeyPrefix;
+        return $this;
+    }
+
+    public function isApiKeyEnabled(): bool
+    {
+        return $this->apiKeyEnabled;
+    }
+
+    public function setApiKeyEnabled(bool $apiKeyEnabled): static
+    {
+        $this->apiKeyEnabled = $apiKeyEnabled;
+        return $this;
+    }
+
+    public function getApiKeyCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->apiKeyCreatedAt;
+    }
+
+    public function setApiKeyCreatedAt(?\DateTimeImmutable $apiKeyCreatedAt): static
+    {
+        $this->apiKeyCreatedAt = $apiKeyCreatedAt;
+        return $this;
+    }
+
+    public function getApiKeyLastUsedAt(): ?\DateTimeImmutable
+    {
+        return $this->apiKeyLastUsedAt;
+    }
+
+    public function setApiKeyLastUsedAt(?\DateTimeImmutable $apiKeyLastUsedAt): static
+    {
+        $this->apiKeyLastUsedAt = $apiKeyLastUsedAt;
+        return $this;
+    }
+
+    /**
+     * Generates a new API key for the user
+     * Returns the plain API key (visible only once)
+     */
+    public function generateApiKey(): string
+    {
+        // Generate 32 random bytes
+        $randomBytes = random_bytes(32);
+
+        // Convert to hexadecimal (64 characters)
+        $apiKey = bin2hex($randomBytes);
+
+        // Extract prefix (first 16 characters)
+        $prefix = substr($apiKey, 0, 16);
+
+        // Hash the complete key with SHA-256 (64 characters)
+        $hash = hash('sha256', $apiKey);
+
+        // Store hash and prefix
+        $this->apiKeyHash = $hash;
+        $this->apiKeyPrefix = $prefix;
+        $this->apiKeyCreatedAt = new \DateTimeImmutable();
+        $this->apiKeyEnabled = true;
+
+        // Return the plain key (will not be stored)
+        return $apiKey;
+    }
+
+    /**
+     * Revokes the API key (deletes it)
+     */
+    public function revokeApiKey(): void
+    {
+        $this->apiKeyHash = null;
+        $this->apiKeyPrefix = null;
+        $this->apiKeyEnabled = false;
+        $this->apiKeyCreatedAt = null;
+        $this->apiKeyLastUsedAt = null;
+    }
+
+    /**
+     * Updates the last used timestamp
+     */
+    public function updateApiKeyLastUsedAt(): void
+    {
+        $this->apiKeyLastUsedAt = new \DateTimeImmutable();
     }
 
     public function __serialize(): array
