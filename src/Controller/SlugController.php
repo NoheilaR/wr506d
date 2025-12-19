@@ -22,6 +22,7 @@ class SlugController extends AbstractController
             'slug' => $slug,
         ]);
     }
+
     #[Route('/add-movie', name: 'add_movie')]
     public function add(EntityManagerInterface $em): Response
     {
