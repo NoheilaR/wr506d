@@ -33,6 +33,14 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    /**
+     * Find user by API key prefix (for optimized lookup)
+     */
+    public function findOneByApiKeyPrefix(string $prefix): ?User
+    {
+        return $this->findOneBy(['apiKeyPrefix' => $prefix]);
+    }
+
     //    /**
     //     * @return User[] Returns an array of User objects
     //     */

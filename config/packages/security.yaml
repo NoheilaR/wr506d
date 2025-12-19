@@ -30,11 +30,13 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
-        # ✅ Routes API (avec JWT)
+        # ✅ Routes API (avec JWT et API Key)
         api:
             pattern: ^/api
             stateless: true
             jwt: ~
+            custom_authenticators:
+                - App\Security\ApiKeyAuthenticator
 
     access_control:
         # Documentation API publique
