@@ -24,11 +24,14 @@ use Symfony\Component\Serializer\Annotation\Groups;
     normalizationContext: ['groups' => ['actor:read']],
     denormalizationContext: ['groups' => ['actor:write']],
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Put(),
-        new Delete()
+        new Get(security: "is_granted('PUBLIC_ACCESS')"),
+        new GetCollection(
+            security: "is_granted('PUBLIC_ACCESS')",
+            paginationEnabled: false
+        ),
+        new Post(security: "is_granted('ROLE_ADMIN')"),
+        new Put(security: "is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_ADMIN')")
     ]
 )]
 class Actor

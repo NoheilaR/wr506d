@@ -6,11 +6,12 @@ use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class MeController extends AbstractController
 {
     #[Route('/api/me', name: 'get_current_user', methods: ['GET'])]
-    public function getCurrentUser(?User $user): JsonResponse
+    public function getCurrentUser(#[CurrentUser] ?User $user): JsonResponse
     {
         if (!$user) {
             return new JsonResponse(['error' => 'Utilisateur non connecté'], JsonResponse::HTTP_UNAUTHORIZED);
