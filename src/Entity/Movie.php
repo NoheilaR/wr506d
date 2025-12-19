@@ -63,7 +63,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['movie:read', 'comment:read'])]
+    #[Groups(['movie:read', 'comment:read', 'actor:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -74,7 +74,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
-    #[Groups(['movie:read', 'movie:write', 'comment:read'])]
+    #[Groups(['movie:read', 'movie:write', 'comment:read', 'actor:read'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -98,7 +98,7 @@ class Movie
     #[ORM\Column(type: 'date', nullable: true)]
     #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read', 'movie:write', 'actor:read'])]
     private ?\DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(nullable: true)]
@@ -133,7 +133,7 @@ class Movie
 
     #[ORM\ManyToOne(targetEntity: MediaObject::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read', 'movie:write', 'actor:read'])]
     private ?MediaObject $poster = null;
 
     /**

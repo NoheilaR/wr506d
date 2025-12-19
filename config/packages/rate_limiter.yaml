@@ -3,12 +3,12 @@ framework:
         # Utilisateurs anonymes
         anonymous_api:
             policy: 'sliding_window'
-            limit: 10
+            limit: 10000  # Augmenté pour le dev (était 10)
             interval: '1 hour'
 
         # Limiter dynamique pour utilisateurs authentifiés
         # On créera des limiters à la volée avec la limite de chaque user
         authenticated_api:
             policy: 'sliding_window'
-            limit: 1000  # Valeur max par défaut (sera overridée)
+            limit: 10000  # Augmenté pour le dev (était 1000)
             interval: '1 hour'

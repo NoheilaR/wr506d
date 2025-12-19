@@ -25,7 +25,10 @@ use DateTimeImmutable;
     normalizationContext: ['groups' => ['category:read']],
     denormalizationContext: ['groups' => ['category:write']],
     operations: [
-        new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
+        new GetCollection(
+            security: "is_granted('PUBLIC_ACCESS')",
+            paginationEnabled: false
+        ),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
         new Post(security: "is_granted('ROLE_ADMIN')"),
         new Put(security: "is_granted('ROLE_ADMIN')"),
@@ -58,11 +61,12 @@ class Category
      * @var Collection<int, Movie>
      */
     #[ORM\ManyToMany(targetEntity: Movie::class, mappedBy: 'categories')]
+    #[Groups(['category:read'])]
     private Collection $movies;
 
     #[ORM\Column]
     #[Groups(['category:read'])]
-    private \DateTimeImmutable $createdAt;
+    private ?\DateTimeImmutable $createdAt = null;
 
     public function __construct()
     {
@@ -113,12 +117,12 @@ class Category
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
