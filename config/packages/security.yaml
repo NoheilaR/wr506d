@@ -19,18 +19,16 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        # ✅ Route d'authentification (/auth)
+        # Route d'authentification avec 2FA (/auth)
         main:
             pattern: ^/auth
             stateless: true
-            json_login:
-                check_path: /auth
-                username_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            lazy: true
+            provider: users
+            custom_authenticators:
+                - App\Security\CustomAuthenticator
 
-        # ✅ Routes API (avec JWT et API Key)
+        # Routes API (avec JWT et API Key)
         api:
             pattern: ^/api
             stateless: true
