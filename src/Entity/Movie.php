@@ -24,15 +24,29 @@ use DateTimeImmutable;
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['movie:read']],
-    denormalizationContext: ['groups' => ['movie:write']],
     paginationEnabled: false,
     operations: [
-        new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
-        new Get(security: "is_granted('PUBLIC_ACCESS')"),
-        new Post(security: "is_granted('ROLE_AUTHOR')"),
-        new Put(security: "is_granted('ROLE_EDITOR') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"),
-        new Delete(security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)")
+        new GetCollection(
+            normalizationContext: ['groups' => ['movie:list']],
+            security: "is_granted('PUBLIC_ACCESS')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['movie:read']],
+            security: "is_granted('PUBLIC_ACCESS')"
+        ),
+        new Post(
+            normalizationContext: ['groups' => ['movie:read']],
+            denormalizationContext: ['groups' => ['movie:write']],
+            security: "is_granted('ROLE_AUTHOR')"
+        ),
+        new Put(
+            normalizationContext: ['groups' => ['movie:read']],
+            denormalizationContext: ['groups' => ['movie:write']],
+            security: "is_granted('ROLE_EDITOR') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"
+        )
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -63,7 +77,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['movie:read', 'comment:read', 'actor:read'])]
+    #[Groups(['movie:list', 'movie:read', 'comment:read', 'actor:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -74,7 +88,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
-    #[Groups(['movie:read', 'movie:write', 'comment:read', 'actor:read'])]
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'comment:read', 'actor:read'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -98,7 +112,7 @@ class Movie
     #[ORM\Column(type: 'date', nullable: true)]
     #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
-    #[Groups(['movie:read', 'movie:write', 'actor:read'])]
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'actor:read'])]
     private ?\DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(nullable: true)]
@@ -133,7 +147,7 @@ class Movie
 
     #[ORM\ManyToOne(targetEntity: MediaObject::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['movie:read', 'movie:write', 'actor:read'])]
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'actor:read'])]
     private ?MediaObject $poster = null;
 
     /**
@@ -149,7 +163,7 @@ class Movie
      */
     #[ORM\ManyToMany(targetEntity: Actor::class, inversedBy: 'movies')]
     #[ORM\JoinTable(name: 'movie_actor')]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read'])]
     private Collection $actors;
 
     /**
@@ -367,5 +381,30 @@ class Movie
     {
         $this->poster = $poster;
         return $this;
+    }
+
+    /**
+     * Durée formatée (virtuel)
+     */
+    #[Groups(['movie:list', 'movie:read'])]
+    public function getFormattedDuration(): ?string
+    {
+        if ($this->duration === null) {
+            return null;
+        }
+
+        $hours = intdiv($this->duration, 60);
+        $minutes = $this->duration % 60;
+
+        return "{$hours}h {$minutes}min";
+    }
+
+    /**
+     * Nombre d'acteurs (virtuel)
+     */
+    #[Groups(['movie:list', 'movie:read'])]
+    public function getActorCount(): int
+    {
+        return $this->actors->count();
     }
 }

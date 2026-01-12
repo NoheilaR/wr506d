@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Delete;
 use App\Repository\ActorRepository;
 use App\Entity\Movie;
 use App\Entity\MediaObject;
+use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -18,20 +19,34 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Context;
+use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 
 #[ORM\Entity(repositoryClass: ActorRepository::class)]
 #[ApiResource(
-    normalizationContext: ['groups' => ['actor:read']],
-    denormalizationContext: ['groups' => ['actor:write']],
     operations: [
-        new Get(security: "is_granted('PUBLIC_ACCESS')"),
         new GetCollection(
+            normalizationContext: ['groups' => ['actor:list']],
             security: "is_granted('PUBLIC_ACCESS')",
             paginationEnabled: false
         ),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Put(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new Get(
+            normalizationContext: ['groups' => ['actor:read']],
+            security: "is_granted('PUBLIC_ACCESS')"
+        ),
+        new Post(
+            normalizationContext: ['groups' => ['actor:read']],
+            denormalizationContext: ['groups' => ['actor:write']],
+            security: "is_granted('ROLE_ADMIN')"
+        ),
+        new Put(
+            normalizationContext: ['groups' => ['actor:read']],
+            denormalizationContext: ['groups' => ['actor:write']],
+            security: "is_granted('ROLE_ADMIN')"
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN')"
+        )
     ]
 )]
 class Actor
@@ -39,15 +54,15 @@ class Actor
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['actor:read', 'movie:read'])]
+    #[Groups(['actor:list', 'actor:read', 'movie:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['actor:read', 'actor:write', 'movie:read'])]
+    #[Groups(['actor:read', 'actor:write'])]
     private ?string $firstname = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['actor:read', 'actor:write', 'movie:read'])]
+    #[Groups(['actor:read', 'actor:write'])]
     private ?string $lastname = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -56,16 +71,21 @@ class Actor
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['actor:read', 'actor:write'])]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => 'd/m/Y'])]
     private ?DateTimeInterface $dob = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     #[Groups(['actor:read', 'actor:write'])]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => 'd/m/Y'])]
     private ?DateTimeInterface $dod = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['actor:read', 'actor:write', 'movie:read'])]
+    #[Groups(['actor:list', 'actor:read', 'actor:write', 'movie:read'])]
     private ?string $photoName = null;
 
+    /**
+     * @var Collection<int, Movie>
+     */
     #[ORM\ManyToMany(targetEntity: Movie::class, mappedBy: 'actors')]
     #[Groups(['actor:read'])]
     private Collection $movies;
@@ -75,7 +95,7 @@ class Actor
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['actor:read', 'actor:write'])]
+    #[Groups(['actor:list', 'actor:read', 'actor:write'])]
     private ?MediaObject $photo = null;
 
     public function __construct()
@@ -202,5 +222,38 @@ class Actor
     {
         $this->photo = $photo;
         return $this;
+    }
+
+    /**
+     * Nom complet (virtuel)
+     */
+    #[Groups(['actor:list', 'actor:read', 'movie:read'])]
+    public function getFullName(): string
+    {
+        return trim($this->lastname . ' ' . $this->firstname);
+    }
+
+    /**
+     * Âge calculé (virtuel)
+     */
+    #[Groups(['actor:list', 'actor:read', 'movie:read'])]
+    public function getAge(): ?int
+    {
+        if ($this->dob === null) {
+            return null;
+        }
+        // Si décédé, calcule l'âge au moment du décès
+        $reference = $this->dod ?? new DateTime();
+
+        return $this->dob->diff($reference)->y;
+    }
+
+    /**
+     * Est décédé (virtuel)
+     */
+    #[Groups(['actor:list', 'actor:read', 'movie:read'])]
+    public function getIsDead(): bool
+    {
+        return $this->dod !== null;
     }
 }

@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\UserRepository;
 use App\State\UserPasswordHasher;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -110,6 +111,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank(groups: ['user:write'])]
     #[Assert\Length(min: 6)]
     private ?string $plainPassword = null;
+
+    // 2FA fields
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $twoFactorSecret = null;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $twoFactorEnabled = false;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $twoFactorBackupCodes = null;
 
     public function getId(): ?int
     {
@@ -289,7 +300,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // Store hash and prefix
         $this->apiKeyHash = $hash;
         $this->apiKeyPrefix = $prefix;
-        $this->apiKeyCreatedAt = new \DateTimeImmutable();
+        $this->apiKeyCreatedAt = new DateTimeImmutable();
         $this->apiKeyEnabled = true;
 
         // Return the plain key (will not be stored)
@@ -313,7 +324,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function updateApiKeyLastUsedAt(): void
     {
-        $this->apiKeyLastUsedAt = new \DateTimeImmutable();
+        $this->apiKeyLastUsedAt = new DateTimeImmutable();
+    }
+
+    // 2FA Methods
+
+    public function getTwoFactorSecret(): ?string
+    {
+        return $this->twoFactorSecret;
+    }
+
+    public function setTwoFactorSecret(?string $twoFactorSecret): static
+    {
+        $this->twoFactorSecret = $twoFactorSecret;
+        return $this;
+    }
+
+    public function isTwoFactorEnabled(): bool
+    {
+        return $this->twoFactorEnabled;
+    }
+
+    public function setTwoFactorEnabled(bool $twoFactorEnabled): static
+    {
+        $this->twoFactorEnabled = $twoFactorEnabled;
+        return $this;
+    }
+
+    public function getTwoFactorBackupCodes(): ?array
+    {
+        return $this->twoFactorBackupCodes;
+    }
+
+    public function setTwoFactorBackupCodes(?array $twoFactorBackupCodes): static
+    {
+        $this->twoFactorBackupCodes = $twoFactorBackupCodes;
+        return $this;
     }
 
     public function __serialize(): array
