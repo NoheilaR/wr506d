@@ -9,7 +9,9 @@ security:
                 property: email
 
     role_hierarchy:
-        ROLE_ADMIN: [ROLE_USER]
+        ROLE_AUTHOR: [ROLE_USER]
+        ROLE_EDITOR: [ROLE_AUTHOR]
+        ROLE_ADMIN: [ROLE_EDITOR]
         ROLE_SUPER_ADMIN: [ROLE_ADMIN]
 
     firewalls:
@@ -17,30 +19,43 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Route d'authentification avec 2FA (/auth)
+        main:
+            pattern: ^/auth
+            stateless: true
+            lazy: true
+            provider: users
+            custom_authenticators:
+                - App\Security\CustomAuthenticator
+
+        # Routes API (avec JWT et API Key)
         api:
             pattern: ^/api
             stateless: true
             jwt: ~
-
-        main:
-            pattern: ^/auth$
-            stateless: true
-            json_login:
-                check_path: /auth
-                username_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            custom_authenticators:
+                - App\Security\ApiKeyAuthenticator
 
     access_control:
-        # Page d'accueil publique
-        - { path: ^/$, roles: PUBLIC_ACCESS }
-
         # Documentation API publique
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+
+        # Inscription publique
+        - { path: ^/api/users$, roles: PUBLIC_ACCESS, methods: [ POST ] }
+
+        # Films en lecture publique (GET)
+        - { path: ^/api/movies, roles: PUBLIC_ACCESS, methods: [ GET ] }
+
+        # Catégories, acteurs, directors en lecture publique
+        - { path: ^/api/categories, roles: PUBLIC_ACCESS, methods: [ GET ] }
+        - { path: ^/api/actors, roles: PUBLIC_ACCESS, methods: [ GET ] }
+        - { path: ^/api/directors, roles: PUBLIC_ACCESS, methods: [ GET ] }
+
+        # Commentaires en lecture publique (GET)
+        - { path: ^/api/comments, roles: PUBLIC_ACCESS, methods: [ GET ] }
 
         # Auth publique
         - { path: ^/auth, roles: PUBLIC_ACCESS }
 
-
-        - { path: ^/api, roles: PUBLIC_ACCESS }
+        # Tout le reste de l'API nécessite une authentification
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

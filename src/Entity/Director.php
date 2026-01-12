@@ -13,10 +13,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\Ignore;
 
 #[ORM\Entity(repositoryClass: DirectorRepository::class)]
 #[ApiResource(
+    normalizationContext: ['groups' => ['director:read']],
+    denormalizationContext: ['groups' => ['director:write']],
     operations: [
         new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
         new Get(security: "is_granted('PUBLIC_ACCESS')"),
@@ -30,6 +33,7 @@ class Director
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['director:read', 'movie:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -40,6 +44,7 @@ class Director
         minMessage: "Le nom doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le nom ne peut pas dépasser {{ limit }} caractères"
     )]
+    #[Groups(['director:read', 'director:write', 'movie:read'])]
     private ?string $lastname = null;
 
     #[ORM\Column(length: 255)]
@@ -50,11 +55,13 @@ class Director
         minMessage: "Le prénom doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le prénom ne peut pas dépasser {{ limit }} caractères"
     )]
+    #[Groups(['director:read', 'director:write', 'movie:read'])]
     private ?string $firstname = null;
 
     #[ORM\Column(type: 'datetime')]
     #[Assert\NotNull(message: "La date de naissance est obligatoire")]
     #[Assert\LessThanOrEqual("today", message: "La date de naissance doit être dans le passé")]
+    #[Groups(['director:read', 'director:write'])]
     private ?\DateTimeInterface $dob = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -63,6 +70,7 @@ class Director
         "this.getDod() === null or (this.getDob() !== null and value > this.getDob())",
         message: "La date de décès doit être postérieure à la date de naissance"
     )]
+    #[Groups(['director:read', 'director:write'])]
     private ?\DateTimeInterface $dod = null;
 
     /**

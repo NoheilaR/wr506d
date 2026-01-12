@@ -2,7 +2,6 @@
 
 namespace App\Entity;
 
-use App\Entity\MediaObject;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
@@ -20,21 +19,34 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use ApiPlatform\Metadata\ApiProperty;
 use DateTimeImmutable;
-use DateTimeInterface;
 
 #[ORM\Entity(repositoryClass: MovieRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['movie:read']],
-    denormalizationContext: ['groups' => ['movie:write']],
+    paginationEnabled: false,
     operations: [
-        new GetCollection(security: "is_granted('PUBLIC_ACCESS')"),
-        new Get(security: "is_granted('PUBLIC_ACCESS')"),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Put(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new GetCollection(
+            normalizationContext: ['groups' => ['movie:list']],
+            security: "is_granted('PUBLIC_ACCESS')"
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['movie:read']],
+            security: "is_granted('PUBLIC_ACCESS')"
+        ),
+        new Post(
+            normalizationContext: ['groups' => ['movie:read']],
+            denormalizationContext: ['groups' => ['movie:write']],
+            security: "is_granted('ROLE_AUTHOR')"
+        ),
+        new Put(
+            normalizationContext: ['groups' => ['movie:read']],
+            denormalizationContext: ['groups' => ['movie:write']],
+            security: "is_granted('ROLE_EDITOR') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN') or (is_granted('ROLE_AUTHOR') and object.getAuthor() == user)"
+        )
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -43,10 +55,13 @@ use DateTimeInterface;
     'actors.lastname' => 'partial',
     'actors.firstname' => 'partial',
     'director.lastname' => 'partial',
-    'director.firstname' => 'partial'
+    'director.firstname' => 'partial',
+    'author' => 'exact'
 ])]
 #[ApiFilter(DateFilter::class, properties: [
-    'actors.dob'
+    'actors.dob',
+    'createdAt',
+    'releaseDate'
 ])]
 #[ApiFilter(RangeFilter::class, properties: [
     'duration',
@@ -62,7 +77,7 @@ class Movie
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['movie:read'])]
+    #[Groups(['movie:list', 'movie:read', 'comment:read', 'actor:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -73,7 +88,7 @@ class Movie
         minMessage: "Le titre doit contenir au moins {{ limit }} caractères",
         maxMessage: "Le titre ne peut pas dépasser {{ limit }} caractères"
     )]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'comment:read', 'actor:read'])]
     private string $name;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -95,15 +110,10 @@ class Movie
     private ?int $duration = null;
 
     #[ORM\Column(type: 'date', nullable: true)]
-    #[Assert\Type(DateTimeInterface::class)]
+    #[Assert\Type(\DateTimeInterface::class)]
     #[Assert\LessThanOrEqual("today", message: "La date de sortie ne peut pas être dans le futur")]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?DateTimeInterface $releaseDate = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(message: "L'image doit être une URL valide", requireTld: false)]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?string $image = null;
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'actor:read'])]
+    private ?\DateTimeInterface $releaseDate = null;
 
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero(message: "Le nombre d'entrées doit être positif ou nul")]
@@ -126,9 +136,19 @@ class Movie
     #[Groups(['movie:read', 'movie:write'])]
     private ?float $budget = null;
 
-    #[ORM\Column]
+    #[ORM\Column(updatable: false)]
     #[Groups(['movie:read'])]
-    private DateTimeImmutable $createdAt;
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['movie:read'])]
+    private ?User $author = null;
+
+    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['movie:list', 'movie:read', 'movie:write', 'actor:read'])]
+    private ?MediaObject $poster = null;
 
     /**
      * @var Collection<int, Category>
@@ -143,19 +163,21 @@ class Movie
      */
     #[ORM\ManyToMany(targetEntity: Actor::class, inversedBy: 'movies')]
     #[ORM\JoinTable(name: 'movie_actor')]
-    #[Groups(['movie:read', 'movie:write'])]
+    #[Groups(['movie:read'])]
     private Collection $actors;
 
-    #[ORM\ManyToOne(targetEntity: MediaObject::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    #[ApiProperty(types: ['https://schema.org/image'])]
-    #[Groups(['movie:read', 'movie:write'])]
-    private ?MediaObject $poster = null;
+    /**
+     * @var Collection<int, Comment>
+     */
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'movie', orphanRemoval: true)]
+    #[Groups(['movie:read'])]
+    private Collection $comments;
 
     public function __construct()
     {
         $this->categories = new ArrayCollection();
         $this->actors = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -202,25 +224,14 @@ class Movie
         return $this;
     }
 
-    public function getReleaseDate(): ?DateTimeInterface
+    public function getReleaseDate(): ?\DateTimeInterface
     {
         return $this->releaseDate;
     }
 
-    public function setReleaseDate(?DateTimeInterface $releaseDate): static
+    public function setReleaseDate(?\DateTimeInterface $releaseDate): static
     {
         $this->releaseDate = $releaseDate;
-        return $this;
-    }
-
-    public function getImage(): ?string
-    {
-        return $this->image;
-    }
-
-    public function setImage(?string $image): static
-    {
-        $this->image = $image;
         return $this;
     }
 
@@ -268,12 +279,12 @@ class Movie
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(DateTimeImmutable $createdAt): static
+    public function setCreatedAt(?\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
         return $this;
@@ -323,6 +334,44 @@ class Movie
         return $this;
     }
 
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): static
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setMovie($this);
+        }
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): static
+    {
+        if ($this->comments->removeElement($comment)) {
+            if ($comment->getMovie() === $this) {
+                $comment->setMovie(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getAuthor(): ?User
+    {
+        return $this->author;
+    }
+
+    public function setAuthor(?User $author): static
+    {
+        $this->author = $author;
+        return $this;
+    }
+
     public function getPoster(): ?MediaObject
     {
         return $this->poster;
@@ -334,13 +383,28 @@ class Movie
         return $this;
     }
 
-    public function setTitle(string $title): static
+    /**
+     * Durée formatée (virtuel)
+     */
+    #[Groups(['movie:list', 'movie:read'])]
+    public function getFormattedDuration(): ?string
     {
-        return $this->setName($title);
+        if ($this->duration === null) {
+            return null;
+        }
+
+        $hours = intdiv($this->duration, 60);
+        $minutes = $this->duration % 60;
+
+        return "{$hours}h {$minutes}min";
     }
 
-    public function setReleasedAt(?DateTimeImmutable $date): static
+    /**
+     * Nombre d'acteurs (virtuel)
+     */
+    #[Groups(['movie:list', 'movie:read'])]
+    public function getActorCount(): int
     {
-        return $this->setReleaseDate($date);
+        return $this->actors->count();
     }
 }
