@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\User;
 use Endroid\QrCode\Builder\Builder;
+use RuntimeException;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
@@ -21,6 +22,7 @@ class TwoFactorService
 
     /**
      * Generate a new TOTP secret for a user
+     * @SuppressWarnings(PHPMD.StaticAccess)
      */
     public function generateSecret(): string
     {
@@ -31,13 +33,14 @@ class TwoFactorService
 
     /**
      * Get TOTP instance for a user
+     * @SuppressWarnings(PHPMD.StaticAccess)
      */
     private function getTOTP(User $user): TOTP
     {
         // recuperation du secret lie a l'utilisateur // si pas de secret alors ERREUR
         $secret = $user->getTwoFactorSecret();
         if ($secret === null) {
-            throw new \RuntimeException('User does not have a 2FA secret');
+            throw new RuntimeException('User does not have a 2FA secret');
         }
 
         $totp = TOTP::createFromSecret($secret);
@@ -81,6 +84,7 @@ class TwoFactorService
 
     /**
      * Verify TOTP code
+     * @SuppressWarnings(PHPMD.StaticAccess)
      */
     public function verifyCode(User $user, string $code): bool
     {

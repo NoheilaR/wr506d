@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\Repository\UserRepository;
 use App\State\UserPasswordHasher;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -299,7 +300,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // Store hash and prefix
         $this->apiKeyHash = $hash;
         $this->apiKeyPrefix = $prefix;
-        $this->apiKeyCreatedAt = new \DateTimeImmutable();
+        $this->apiKeyCreatedAt = new DateTimeImmutable();
         $this->apiKeyEnabled = true;
 
         // Return the plain key (will not be stored)
@@ -323,7 +324,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function updateApiKeyLastUsedAt(): void
     {
-        $this->apiKeyLastUsedAt = new \DateTimeImmutable();
+        $this->apiKeyLastUsedAt = new DateTimeImmutable();
     }
 
     // 2FA Methods

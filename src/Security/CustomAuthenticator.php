@@ -68,7 +68,25 @@ class CustomAuthenticator extends AbstractAuthenticator
             return new JsonResponse(['error' => 'Invalid user'], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Verification du format du password
+        $passwordValidation = $this->validatePassword($request, $user);
+        if ($passwordValidation !== null) {
+            return $passwordValidation;
+        }
+
+        $twoFactorValidation = $this->validateTwoFactor($request, $user);
+        if ($twoFactorValidation !== null) {
+            return $twoFactorValidation;
+        }
+
+        $jwt = $this->jwtManager->create($user);
+
+        return new JsonResponse([
+            'token' => $jwt,
+        ]);
+    }
+
+    private function validatePassword(Request $request, User $user): ?JsonResponse
+    {
         $password = $request->attributes->get('_auth_password');
         if (!is_string($password)) {
             return new JsonResponse(['error' => 'Invalid password format'], Response::HTTP_UNAUTHORIZED);
@@ -78,39 +96,37 @@ class CustomAuthenticator extends AbstractAuthenticator
             return new JsonResponse(['error' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Check si 2FA = enabled
-        if ($user->isTwoFactorEnabled() && $user->getTwoFactorSecret() !== null) {
-            $totpCode = $request->attributes->get('_auth_totp_code');
+        return null;
+    }
 
-            // si OUI, verifier si totp_code est bien passe dans le body
-            if ($totpCode === null || $totpCode === '') {
-                return new JsonResponse([
-                    'status' => 'totp_required',
-                    'message' => '2FA code required.',
-                ], Response::HTTP_UNAUTHORIZED);
-            }
-            // Verif. si totp_code est bien une chaine de caracteres
-            if (!is_string($totpCode)) {
-                return new JsonResponse([
-                    'error' => 'Invalid TOTP code format',
-                ], Response::HTTP_UNAUTHORIZED);
-            }
-            // comme pour l'activation, on verif. si le code 2FA est valide / validation geree par le composant
-            $isValid = $this->twoFactorService->verifyCode($user, $totpCode);
-
-            if (!$isValid) {
-                return new JsonResponse([
-                    'error' => 'Invalid 2FA code',
-                ], Response::HTTP_UNAUTHORIZED);
-            }
+    private function validateTwoFactor(Request $request, User $user): ?JsonResponse
+    {
+        if (!$user->isTwoFactorEnabled() || $user->getTwoFactorSecret() === null) {
+            return null;
         }
 
-        // TOUT EST OK - Generate JWT token
-        $jwt = $this->jwtManager->create($user);
+        $totpCode = $request->attributes->get('_auth_totp_code');
 
-        return new JsonResponse([
-            'token' => $jwt,
-        ]);
+        if ($totpCode === null || $totpCode === '') {
+            return new JsonResponse([
+                'status' => 'totp_required',
+                'message' => '2FA code required.',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (!is_string($totpCode)) {
+            return new JsonResponse([
+                'error' => 'Invalid TOTP code format',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (!$this->twoFactorService->verifyCode($user, $totpCode)) {
+            return new JsonResponse([
+                'error' => 'Invalid 2FA code',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return null;
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
