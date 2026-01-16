@@ -26,13 +26,13 @@ final class MovieProcessor implements ProcessorInterface
                 // Only set author on creation (POST), not on updates
                 if ($operation instanceof \ApiPlatform\Metadata\Post) {
                     $user = $this->security->getUser();
-                    $this->logger->info('User from security: ' . (is_object($user) ? get_class($user) . '
-  ID: ' . $user->getId() : 'null'));
 
                     if (!$user instanceof User) {
                         $this->logger->error('User not instanceof User in MovieProcessor');
                         throw new AccessDeniedException('Utilisateur invalide pour créer un film.');
                     }
+
+                    $this->logger->info('User from security: ' . get_class($user) . ' ID: ' . $user->getId());
 
                     // Auto-assign the authenticated user as author
                     $data->setAuthor($user);

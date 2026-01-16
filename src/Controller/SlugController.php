@@ -27,8 +27,8 @@ class SlugController extends AbstractController
     public function add(EntityManagerInterface $em): Response
     {
         $movie = new Movie();
-        $movie->setTitle('Inception');
-        $movie->setReleasedAt(new DateTimeImmutable('2010-07-16'));
+        $movie->setName('Inception');
+        $movie->setReleaseDate(new DateTimeImmutable('2010-07-16'));
 
         $em->persist($movie);
         $em->flush();

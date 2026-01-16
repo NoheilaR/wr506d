@@ -22,7 +22,7 @@ class TwoFactorService
 
     /**
      * Generate a new TOTP secret for a user
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      */
     public function generateSecret(): string
     {
@@ -33,7 +33,7 @@ class TwoFactorService
 
     /**
      * Get TOTP instance for a user
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      */
     private function getTOTP(User $user): TOTP
     {
@@ -84,7 +84,7 @@ class TwoFactorService
 
     /**
      * Verify TOTP code
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      */
     public function verifyCode(User $user, string $code): bool
     {

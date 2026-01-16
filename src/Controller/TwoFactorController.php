@@ -46,7 +46,7 @@ class TwoFactorController extends AbstractController
             'secret' => $secret,
             'qr_code' => $qrCodeDataUri,
             'provisioning_uri' => $provisioningUri,
-            'message' => 'Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.) and then call /api/2fa/enable with the generated code to activate 2FA.',
+            'message' => 'Scan the QR code with your authenticator app and call /api/2fa/enable to activate.',
         ]);
     }
 
@@ -86,7 +86,7 @@ class TwoFactorController extends AbstractController
         return $this->json([
             'message' => '2FA enabled successfully',
             'backup_codes' => $backupCodes,
-            'warning' => 'Save these backup codes in a safe place. You will need them if you lose access to your authenticator app.',
+            'warning' => 'Save these backup codes safely. You need them if you lose your authenticator.',
         ]);
     }
 }
