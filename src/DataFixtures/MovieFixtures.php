@@ -46,9 +46,7 @@ class MovieFixtures extends BaseFixture implements DependentFixtureInterface
         for ($i = 0; $i < 100; $i++) {
             $movie = new Movie();
 
-            /** @phpstan-ignore-next-line */
             $movie->setName($faker->movie);
-            /** @phpstan-ignore-next-line */
             $movie->setDescription($faker->overview);
             $movie->setDuration($faker->numberBetween(80, 180));
             $movie->setReleaseDate($faker->dateTimeBetween('-30 years', 'now'));
