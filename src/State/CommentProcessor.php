@@ -24,14 +24,14 @@ final class CommentProcessor implements ProcessorInterface
         if ($data instanceof Comment) {
             try {
                 $user = $this->security->getUser();
-                $userInfo = is_object($user) ? get_class($user) . ' ID: ' . $user->getId() : 'null';
-                $this->logger->info('User from security: ' . $userInfo);
 
                 if (!$user instanceof User) {
                     $this->logger->error('User not instanceof User in CommentProcessor');
                     throw new AccessDeniedException('Utilisateur invalide pour créer un commentaire.');
                 }
-                
+
+                $this->logger->info('User from security: ' . get_class($user) . ' ID: ' . $user->getId());
+
                 $data->setAuthor($user);
                 $this->logger->info('Author set to user ID: ' . $user->getId());
             } catch (\Exception $e) {

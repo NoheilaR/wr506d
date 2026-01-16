@@ -47,6 +47,9 @@ use Symfony\Component\Validator\Constraints as Assert;
         )
     ]
 )]
+/**
+ * @SuppressWarnings("PHPMD.TooManyFields")
+ */
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]

@@ -9,7 +9,7 @@ use Faker\Generator;
 abstract class BaseFixture extends Fixture
 {
     /**
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      */
     protected function createFaker(?string $locale = null): Generator
     {

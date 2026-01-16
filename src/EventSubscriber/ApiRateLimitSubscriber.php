@@ -141,7 +141,7 @@ class ApiRateLimitSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      */
     private function createOneHourInterval(): \DateInterval
     {
