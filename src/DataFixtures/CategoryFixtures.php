@@ -18,7 +18,7 @@ class CategoryFixtures extends BaseFixture
         $targetCount = 20;
         $genresCount = 0;
         while ($genresCount < $targetCount) {
-            $genres[] = $faker->movieGenre;
+            $genres[] = $faker->format('movieGenre');
             $genres = array_unique($genres);
             $genresCount = count($genres);
         }

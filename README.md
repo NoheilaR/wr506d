@@ -4,12 +4,15 @@ API REST et GraphQL pour la gestion de films, acteurs, catégories et commentair
 
 ## Technologies
 
+- **PHP** : 8.4+
 - **Framework** : Symfony 7.3
 - **API** : API Platform 4.1 (REST + GraphQL)
 - **Base de données** : MySQL/MariaDB (Doctrine ORM)
 - **Authentification** : JWT (Lexik JWT Bundle) + API Key
 - **Upload** : Vich Uploader Bundle
 - **2FA** : TOTP avec Google Authenticator
+
+> **Note** : La fonctionnalité 2FA nécessite l'extension PHP GD pour générer les QR codes. Le Dockerfile fourni inclut cette extension.
 
 ## Installation avec Docker (recommandé)
 
@@ -21,7 +24,9 @@ Dans un dossier parent, créez un fichier `docker-compose.yml` :
 version: '3.8'
 services:
     web:
-        image: mmi3docker/symfony-2024
+        build:
+            context: ./www/html/wr506d
+            dockerfile: Dockerfile
         container_name: symfony-web
         hostname: symfony-web
         restart: always
@@ -83,7 +88,7 @@ docker exec -ti symfony-web /root/init.sh
 **Containers créés :**
 | Container | Description | Accès |
 |-----------|-------------|-------|
-| `symfony-web` | Apache2, PHP 8.3, Composer, Symfony CLI, Node.js 20 | - |
+| `symfony-web` | Apache2, PHP 8.4, Composer, Symfony CLI, Node.js 20 | - |
 | `symfony-db` | MariaDB (user: `symfony`, password: `PASSWORD`) | - |
 | `symfony-adminsql` | PhpMyAdmin | `localhost:8080` |
 | `symfony-mail` | MailDev | `localhost:1080` |
@@ -190,10 +195,17 @@ L'API est accessible sur `http://localhost:8319/api`
 
 ### Prérequis
 
-- PHP >= 8.2
+- PHP >= 8.4
 - Composer
 - MySQL/MariaDB
 - OpenSSL (pour les clés JWT)
+- Extension PHP GD (pour la génération des QR codes 2FA)
+
+Pour installer GD sur Ubuntu/Debian :
+```bash
+sudo apt-get install php8.4-gd
+sudo systemctl restart apache2
+```
 
 ### Étapes
 
@@ -280,6 +292,8 @@ php -S localhost:8000 -t public
 
 ### 2FA (Authentification à deux facteurs)
 
+> **Prérequis** : L'extension PHP GD doit être installée pour générer les QR codes. Si vous utilisez Docker avec le Dockerfile fourni, GD est déjà inclus.
+
 1. **Initialiser** : `POST /api/2fa/setup` - Retourne un QR code à scanner
 2. **Activer** : `POST /api/2fa/enable` avec le code TOTP
 
@@ -291,6 +305,42 @@ Une fois activé, le login nécessite le paramètre `totp_code` :
   "totp_code": "123456"
 }
 ```
+
+## Utilisation avec Postman
+
+Une collection Postman est disponible pour tester l'API.
+
+### Configuration des variables d'environnement
+
+Dans Postman, créez un environnement avec les variables suivantes :
+
+| Variable | Valeur | Description |
+|----------|--------|-------------|
+| `LOCAL_URL` | `http://localhost:8319` | URL de base de l'API |
+| `TOKEN` | _(vide)_ | Token JWT (rempli automatiquement après login) |
+
+### Authentification automatique
+
+Pour récupérer automatiquement le token après login, ajoutez ce script dans l'onglet **Tests** de la requête `POST /auth` :
+
+```javascript
+if (pm.response.code === 200) {
+    var jsonData = pm.response.json();
+    pm.environment.set("TOKEN", jsonData.token);
+}
+```
+
+### Utilisation du token
+
+Dans les requêtes authentifiées, ajoutez le header :
+- **Key** : `Authorization`
+- **Value** : `Bearer {{TOKEN}}`
+
+Ou configurez l'onglet **Authorization** :
+- **Type** : Bearer Token
+- **Token** : `{{TOKEN}}`
+
+---
 
 ## Endpoints API REST
 
