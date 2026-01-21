@@ -9,6 +9,7 @@ L'application est déployée sur un VPS et accessible à l'adresse suivante :
 - **API Documentation** : https://mmi23c14.mmi-troyes.fr/wr506d/api/docs
 - **API REST** : https://mmi23c14.mmi-troyes.fr/wr506d/api
 - **GraphQL** : https://mmi23c14.mmi-troyes.fr/wr506d/api/graphql
+- **Exemple d’endpoint** : GET https://mmi23c14.mmi-troyes.fr/wr506d/api/actors
 
 ## Technologies
 
