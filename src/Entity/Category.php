@@ -71,6 +71,7 @@ class Category
     public function __construct()
     {
         $this->movies = new ArrayCollection();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     #[ORM\PrePersist]
