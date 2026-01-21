@@ -4,6 +4,7 @@ API REST et GraphQL pour la gestion de films, acteurs, catégories et commentair
 
 ## Technologies
 
+- **PHP** : 8.4+
 - **Framework** : Symfony 7.3
 - **API** : API Platform 4.1 (REST + GraphQL)
 - **Base de données** : MySQL/MariaDB (Doctrine ORM)
@@ -83,7 +84,7 @@ docker exec -ti symfony-web /root/init.sh
 **Containers créés :**
 | Container | Description | Accès |
 |-----------|-------------|-------|
-| `symfony-web` | Apache2, PHP 8.3, Composer, Symfony CLI, Node.js 20 | - |
+| `symfony-web` | Apache2, PHP 8.4, Composer, Symfony CLI, Node.js 20 | - |
 | `symfony-db` | MariaDB (user: `symfony`, password: `PASSWORD`) | - |
 | `symfony-adminsql` | PhpMyAdmin | `localhost:8080` |
 | `symfony-mail` | MailDev | `localhost:1080` |
@@ -190,7 +191,7 @@ L'API est accessible sur `http://localhost:8319/api`
 
 ### Prérequis
 
-- PHP >= 8.2
+- PHP >= 8.4
 - Composer
 - MySQL/MariaDB
 - OpenSSL (pour les clés JWT)
@@ -291,6 +292,42 @@ Une fois activé, le login nécessite le paramètre `totp_code` :
   "totp_code": "123456"
 }
 ```
+
+## Utilisation avec Postman
+
+Une collection Postman est disponible pour tester l'API.
+
+### Configuration des variables d'environnement
+
+Dans Postman, créez un environnement avec les variables suivantes :
+
+| Variable | Valeur | Description |
+|----------|--------|-------------|
+| `LOCAL_URL` | `http://localhost:8319` | URL de base de l'API |
+| `TOKEN` | _(vide)_ | Token JWT (rempli automatiquement après login) |
+
+### Authentification automatique
+
+Pour récupérer automatiquement le token après login, ajoutez ce script dans l'onglet **Tests** de la requête `POST /auth` :
+
+```javascript
+if (pm.response.code === 200) {
+    var jsonData = pm.response.json();
+    pm.environment.set("TOKEN", jsonData.token);
+}
+```
+
+### Utilisation du token
+
+Dans les requêtes authentifiées, ajoutez le header :
+- **Key** : `Authorization`
+- **Value** : `Bearer {{TOKEN}}`
+
+Ou configurez l'onglet **Authorization** :
+- **Type** : Bearer Token
+- **Token** : `{{TOKEN}}`
+
+---
 
 ## Endpoints API REST
 
