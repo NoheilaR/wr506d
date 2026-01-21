@@ -533,4 +533,4 @@ src/
 
 ## Auteur
 
-Noheila R. - BUT Informatique S5 - Université de Reims
+Noheila R. - BUT MMI - IUT DE TROYES
