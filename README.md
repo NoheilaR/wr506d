@@ -2,6 +2,14 @@
 
 API REST et GraphQL pour la gestion de films, acteurs, catégories et commentaires.
 
+## Démo en ligne
+
+L'application est déployée sur un VPS et accessible à l'adresse suivante :
+
+- **API Documentation** : https://mmi23c14.mmi-troyes.fr/wr506d/api/docs
+- **API REST** : https://mmi23c14.mmi-troyes.fr/wr506d/api
+- **GraphQL** : https://mmi23c14.mmi-troyes.fr/wr506d/api/graphql
+
 ## Technologies
 
 - **PHP** : 8.4+
