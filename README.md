@@ -11,7 +11,182 @@ API REST et GraphQL pour la gestion de films, acteurs, catégories et commentair
 - **Upload** : Vich Uploader Bundle
 - **2FA** : TOTP avec Google Authenticator
 
-## Installation
+## Installation avec Docker (recommandé)
+
+### 1. Créer le fichier `docker-compose.yml`
+
+Dans un dossier parent, créez un fichier `docker-compose.yml` :
+
+```yaml
+version: '3.8'
+services:
+    web:
+        image: mmi3docker/symfony-2024
+        container_name: symfony-web
+        hostname: symfony-web
+        restart: always
+        ports:
+            - 8319:80
+        depends_on:
+            - db
+        volumes:
+            - ./www/:/var/www/
+            - ./sites/:/etc/apache2/sites-enabled/
+
+    db:
+        image: mariadb:10.8
+        container_name: symfony-db
+        hostname: symfony-db
+        restart: always
+        volumes:
+            - db-volume:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: PASSWORD
+            MYSQL_DATABASE: symfony
+            MYSQL_USER: symfony
+            MYSQL_PASSWORD: PASSWORD
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: symfony-adminsql
+        hostname: symfony-adminsql
+        restart: always
+        ports:
+            - 8080:80
+        environment:
+            PMA_HOST: db
+            MYSQL_ROOT_PASSWORD: PASSWORD
+            MYSQL_USER: symfony
+            MYSQL_PASSWORD: PASSWORD
+            MYSQL_DATABASE: symfony
+
+    maildev:
+        image: maildev/maildev
+        container_name: symfony-mail
+        hostname: symfony-mail
+        command: bin/maildev --web 1080 --smtp 1025 --hide-extensions STARTTLS
+        restart: always
+        ports:
+            - 1080:1080
+
+volumes:
+    db-volume:
+```
+
+### 2. Lancer les containers
+
+```bash
+docker-compose up -d
+docker exec -ti symfony-web /root/init.sh
+```
+
+**Containers créés :**
+| Container | Description | Accès |
+|-----------|-------------|-------|
+| `symfony-web` | Apache2, PHP 8.3, Composer, Symfony CLI, Node.js 20 | - |
+| `symfony-db` | MariaDB (user: `symfony`, password: `PASSWORD`) | - |
+| `symfony-adminsql` | PhpMyAdmin | `localhost:8080` |
+| `symfony-mail` | MailDev | `localhost:1080` |
+
+### 3. Cloner le projet
+
+```bash
+cd www/html
+git clone https://github.com/NoheilaR/wr506d.git
+```
+
+### 4. Configuration Apache
+
+Créez le fichier `sites/000-default.conf` :
+
+```apache
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html/wr506d/public
+
+    <Directory /var/www/html/wr506d/public>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Order allow,deny
+        allow from all
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+```
+
+### 5. Fichier `.htaccess`
+
+Ajoutez dans `public/.htaccess` :
+
+```apache
+DirectoryIndex index.php
+
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI}::$0 ^(/.+)/(.*)::\2$
+    RewriteRule .* - [E=BASE:%1]
+    RewriteCond %{HTTP:Authorization} .+
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%0]
+    RewriteCond %{ENV:REDIRECT_STATUS} =""
+    RewriteRule ^index\.php(?:/(.*)|$) %{ENV:BASE}/$1 [R=301,L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ %{ENV:BASE}/index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    <IfModule mod_alias.c>
+        RedirectMatch 307 ^/$ /index.php/
+    </IfModule>
+</IfModule>
+```
+
+### 6. Configuration du projet
+
+```bash
+# Accéder au container
+docker exec -ti symfony-web bash
+
+# Aller dans le projet
+cd /var/www/html/wr506d
+
+# Installer les dépendances
+composer install
+
+# Configurer l'environnement
+cp .env .env.local
+```
+
+Dans `.env.local`, configurez la base de données :
+```
+DATABASE_URL="mysql://symfony:PASSWORD@symfony-db:3306/wr506d?serverVersion=mariadb-10.8.0"
+```
+
+```bash
+# Créer la base de données et exécuter les migrations
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+
+# (Optionnel) Charger les fixtures
+php bin/console doctrine:fixtures:load
+
+# Générer les clés JWT
+php bin/console lexik:jwt:generate-keypair
+
+# Corriger les permissions pour les uploads
+chmod -R 777 public/uploads/
+```
+
+L'API est accessible sur `http://localhost:8319/api`
+
+---
+
+## Installation manuelle (sans Docker)
 
 ### Prérequis
 
