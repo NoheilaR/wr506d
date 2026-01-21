@@ -12,6 +12,8 @@ API REST et GraphQL pour la gestion de films, acteurs, catégories et commentair
 - **Upload** : Vich Uploader Bundle
 - **2FA** : TOTP avec Google Authenticator
 
+> **Note** : La fonctionnalité 2FA nécessite l'extension PHP GD pour générer les QR codes. Le Dockerfile fourni inclut cette extension.
+
 ## Installation avec Docker (recommandé)
 
 ### 1. Créer le fichier `docker-compose.yml`
@@ -22,7 +24,9 @@ Dans un dossier parent, créez un fichier `docker-compose.yml` :
 version: '3.8'
 services:
     web:
-        image: mmi3docker/symfony-2024
+        build:
+            context: ./www/html/wr506d
+            dockerfile: Dockerfile
         container_name: symfony-web
         hostname: symfony-web
         restart: always
@@ -195,6 +199,13 @@ L'API est accessible sur `http://localhost:8319/api`
 - Composer
 - MySQL/MariaDB
 - OpenSSL (pour les clés JWT)
+- Extension PHP GD (pour la génération des QR codes 2FA)
+
+Pour installer GD sur Ubuntu/Debian :
+```bash
+sudo apt-get install php8.4-gd
+sudo systemctl restart apache2
+```
 
 ### Étapes
 
@@ -280,6 +291,8 @@ php -S localhost:8000 -t public
 - `DELETE /api/me/api-key` - Révoquer la clé
 
 ### 2FA (Authentification à deux facteurs)
+
+> **Prérequis** : L'extension PHP GD doit être installée pour générer les QR codes. Si vous utilisez Docker avec le Dockerfile fourni, GD est déjà inclus.
 
 1. **Initialiser** : `POST /api/2fa/setup` - Retourne un QR code à scanner
 2. **Activer** : `POST /api/2fa/enable` avec le code TOTP
