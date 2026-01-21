@@ -87,6 +87,12 @@ class Comment
     #[Groups(['comment:read'])]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    public function __construct()
+    {
+        $this->createdAt = new DateTimeImmutable();
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
